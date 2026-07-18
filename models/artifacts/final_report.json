@@ -1,0 +1,235 @@
+{
+  "winner": "lgbm",
+  "test_split": "2025 (chronological holdout, thresholds frozen on val-2024)",
+  "classification": [
+    {
+      "target": "ge5_1h",
+      "scope": "test-2025",
+      "positives": 2683,
+      "pr_auc": 0.5837,
+      "f2": 0.5212,
+      "precision": 0.3301,
+      "recall": 0.6094,
+      "persistence_f2": 0.5789,
+      "monsoon_f2": 0.4925,
+      "monsoon_recall": 0.6158,
+      "monsoon_positives": 1666
+    },
+    {
+      "target": "ge15_1h",
+      "scope": "test-2025",
+      "positives": 843,
+      "pr_auc": 0.56,
+      "f2": 0.5648,
+      "precision": 0.6435,
+      "recall": 0.548,
+      "persistence_f2": 0.5527,
+      "monsoon_f2": 0.5185,
+      "monsoon_recall": 0.5078,
+      "monsoon_positives": 447
+    },
+    {
+      "target": "ge30_1h",
+      "scope": "test-2025",
+      "positives": 119,
+      "pr_auc": 0.0411,
+      "f2": 0.2242,
+      "precision": 0.0612,
+      "recall": 0.6723,
+      "persistence_f2": 0.5064,
+      "monsoon_f2": 0.1053,
+      "monsoon_recall": 0.6053,
+      "monsoon_positives": 38
+    },
+    {
+      "target": "ge5_3h",
+      "scope": "test-2025",
+      "positives": 5330,
+      "pr_auc": 0.2957,
+      "f2": 0.3134,
+      "precision": 0.3567,
+      "recall": 0.3041,
+      "persistence_f2": 0.3126,
+      "monsoon_f2": 0.2967,
+      "monsoon_recall": 0.2964,
+      "monsoon_positives": 3394
+    },
+    {
+      "target": "ge15_3h",
+      "scope": "test-2025",
+      "positives": 1732,
+      "pr_auc": 0.2711,
+      "f2": 0.309,
+      "precision": 0.6038,
+      "recall": 0.2754,
+      "persistence_f2": 0.2887,
+      "monsoon_f2": 0.277,
+      "monsoon_recall": 0.2482,
+      "monsoon_positives": 959
+    },
+    {
+      "target": "ge30_3h",
+      "scope": "test-2025",
+      "positives": 264,
+      "pr_auc": 0.0099,
+      "f2": 0.1113,
+      "precision": 0.0306,
+      "recall": 0.3258,
+      "persistence_f2": 0.2449,
+      "monsoon_f2": 0.0443,
+      "monsoon_recall": 0.2447,
+      "monsoon_positives": 94
+    },
+    {
+      "target": "ge5_6h",
+      "scope": "test-2025",
+      "positives": 9221,
+      "pr_auc": 0.181,
+      "f2": 0.194,
+      "precision": 0.3428,
+      "recall": 0.175,
+      "persistence_f2": 0.187,
+      "monsoon_f2": 0.1853,
+      "monsoon_recall": 0.1711,
+      "monsoon_positives": 5886
+    },
+    {
+      "target": "ge15_6h",
+      "scope": "test-2025",
+      "positives": 3051,
+      "pr_auc": 0.1602,
+      "f2": 0.1825,
+      "precision": 0.6758,
+      "recall": 0.1544,
+      "persistence_f2": 0.1698,
+      "monsoon_f2": 0.16,
+      "monsoon_recall": 0.1355,
+      "monsoon_positives": 1705
+    },
+    {
+      "target": "ge30_6h",
+      "scope": "test-2025",
+      "positives": 482,
+      "pr_auc": 0.0728,
+      "f2": 0.1324,
+      "precision": 0.2995,
+      "recall": 0.1162,
+      "persistence_f2": 0.1378,
+      "monsoon_f2": 0.0766,
+      "monsoon_recall": 0.073,
+      "monsoon_positives": 178
+    }
+  ],
+  "depth_quantiles": [
+    {
+      "quantile": 0.05,
+      "horizon_h": 1,
+      "pinball": 0.00072,
+      "pinball_persistence": 0.00091,
+      "coverage": 0.99745
+    },
+    {
+      "quantile": 0.25,
+      "horizon_h": 1,
+      "pinball": 0.00226,
+      "pinball_persistence": 0.00229,
+      "coverage": 0.99789
+    },
+    {
+      "quantile": 0.5,
+      "horizon_h": 1,
+      "pinball": 0.00409,
+      "pinball_persistence": 0.00401,
+      "coverage": 0.99831
+    },
+    {
+      "quantile": 0.75,
+      "horizon_h": 1,
+      "pinball": 0.00561,
+      "pinball_persistence": 0.00574,
+      "coverage": 0.99881
+    },
+    {
+      "quantile": 0.95,
+      "horizon_h": 1,
+      "pinball": 0.00643,
+      "pinball_persistence": 0.00712,
+      "coverage": 0.99914
+    },
+    {
+      "quantile": 0.05,
+      "horizon_h": 3,
+      "pinball": 0.00139,
+      "pinball_persistence": 0.00158,
+      "coverage": 0.99506
+    },
+    {
+      "quantile": 0.25,
+      "horizon_h": 3,
+      "pinball": 0.00575,
+      "pinball_persistence": 0.00573,
+      "coverage": 0.99612
+    },
+    {
+      "quantile": 0.5,
+      "horizon_h": 3,
+      "pinball": 0.01098,
+      "pinball_persistence": 0.01092,
+      "coverage": 0.99694
+    },
+    {
+      "quantile": 0.75,
+      "horizon_h": 3,
+      "pinball": 0.01592,
+      "pinball_persistence": 0.0161,
+      "coverage": 0.99689
+    },
+    {
+      "quantile": 0.95,
+      "horizon_h": 3,
+      "pinball": 0.01955,
+      "pinball_persistence": 0.02025,
+      "coverage": 0.99773
+    },
+    {
+      "quantile": 0.05,
+      "horizon_h": 6,
+      "pinball": 0.00244,
+      "pinball_persistence": 0.0026,
+      "coverage": 0.9949
+    },
+    {
+      "quantile": 0.25,
+      "horizon_h": 6,
+      "pinball": 0.01087,
+      "pinball_persistence": 0.01082,
+      "coverage": 0.98918
+    },
+    {
+      "quantile": 0.5,
+      "horizon_h": 6,
+      "pinball": 0.02122,
+      "pinball_persistence": 0.0211,
+      "coverage": 0.99471
+    },
+    {
+      "quantile": 0.75,
+      "horizon_h": 6,
+      "pinball": 0.03118,
+      "pinball_persistence": 0.03138,
+      "coverage": 0.99436
+    },
+    {
+      "quantile": 0.95,
+      "horizon_h": 6,
+      "pinball": 0.03914,
+      "pinball_persistence": 0.03961,
+      "coverage": 0.99575
+    }
+  ],
+  "notes": [
+    "hybrid rule applied: alert = model >= val-threshold OR depth >= tier now",
+    "monsoon scope = May-Oct 2025",
+    "run-once policy: these numbers are final; any later model change invalidates this as a held-out estimate"
+  ]
+}
