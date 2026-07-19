@@ -1,0 +1,138 @@
+{
+  "split": "val",
+  "thresholds": {
+    "ge5_1h": 0.8624415888430761,
+    "ge15_1h": 0.9185769148504623,
+    "ge30_1h": 1.0,
+    "ge5_3h": 0.8632637420886442,
+    "ge15_3h": 0.9103148908397882,
+    "ge30_3h": 1.0,
+    "ge5_6h": 0.8708979810198958,
+    "ge15_6h": 0.9516104025990559,
+    "ge30_6h": 0.3452253015309059
+  },
+  "summary": [
+    {
+      "target": "ge5_1h",
+      "val_pos": 1664,
+      "pr_auc": 0.4671,
+      "model_f2": 0.3821,
+      "model_prec": 0.1596,
+      "model_rec": 0.5865,
+      "pers_f2": 0.4679,
+      "hybrid_f2": 0.3821,
+      "hybrid_prec": 0.1596,
+      "hybrid_rec": 0.5865,
+      "winner": "pers"
+    },
+    {
+      "target": "ge15_1h",
+      "val_pos": 280,
+      "pr_auc": 0.4179,
+      "model_f2": 0.4195,
+      "model_prec": 0.3555,
+      "model_rec": 0.4393,
+      "pers_f2": 0.4223,
+      "hybrid_f2": 0.4195,
+      "hybrid_prec": 0.3555,
+      "hybrid_rec": 0.4393,
+      "winner": "pers"
+    },
+    {
+      "target": "ge30_1h",
+      "val_pos": 40,
+      "pr_auc": 0.0002,
+      "model_f2": 0.0011,
+      "model_prec": 0.0002,
+      "model_rec": 0.8,
+      "pers_f2": 0.3672,
+      "hybrid_f2": 0.0011,
+      "hybrid_prec": 0.0002,
+      "hybrid_rec": 0.8,
+      "winner": "pers"
+    },
+    {
+      "target": "ge5_3h",
+      "val_pos": 3622,
+      "pr_auc": 0.2198,
+      "model_f2": 0.2395,
+      "model_prec": 0.1614,
+      "model_rec": 0.2725,
+      "pers_f2": 0.2289,
+      "hybrid_f2": 0.2395,
+      "hybrid_prec": 0.1614,
+      "hybrid_rec": 0.2725,
+      "winner": "hybrid"
+    },
+    {
+      "target": "ge15_3h",
+      "val_pos": 642,
+      "pr_auc": 0.1774,
+      "model_f2": 0.2162,
+      "model_prec": 0.3642,
+      "model_rec": 0.1963,
+      "pers_f2": 0.1989,
+      "hybrid_f2": 0.2162,
+      "hybrid_prec": 0.3642,
+      "hybrid_rec": 0.1963,
+      "winner": "hybrid"
+    },
+    {
+      "target": "ge30_3h",
+      "val_pos": 90,
+      "pr_auc": 0.0084,
+      "model_f2": 0.0829,
+      "model_prec": 0.0201,
+      "model_rec": 0.3778,
+      "pers_f2": 0.1724,
+      "hybrid_f2": 0.09,
+      "hybrid_prec": 0.0218,
+      "hybrid_rec": 0.4111,
+      "winner": "pers"
+    },
+    {
+      "target": "ge5_6h",
+      "val_pos": 6508,
+      "pr_auc": 0.1272,
+      "model_f2": 0.1534,
+      "model_prec": 0.1613,
+      "model_rec": 0.1515,
+      "pers_f2": 0.1304,
+      "hybrid_f2": 0.1534,
+      "hybrid_prec": 0.1613,
+      "hybrid_rec": 0.1515,
+      "winner": "hybrid"
+    },
+    {
+      "target": "ge15_6h",
+      "val_pos": 1184,
+      "pr_auc": 0.1018,
+      "model_f2": 0.122,
+      "model_prec": 0.3594,
+      "model_rec": 0.1047,
+      "pers_f2": 0.1106,
+      "hybrid_f2": 0.122,
+      "hybrid_prec": 0.3594,
+      "hybrid_rec": 0.1047,
+      "winner": "hybrid"
+    },
+    {
+      "target": "ge30_6h",
+      "val_pos": 164,
+      "pr_auc": 0.0868,
+      "model_f2": 0.1199,
+      "model_prec": 0.0696,
+      "model_rec": 0.1463,
+      "pers_f2": 0.0966,
+      "hybrid_f2": 0.1199,
+      "hybrid_prec": 0.0696,
+      "hybrid_rec": 0.1463,
+      "winner": "hybrid"
+    }
+  ],
+  "config": {
+    "VALID_MIN": 0.8,
+    "NEG_FRAC": 0.05,
+    "SPW_CAP": 30.0
+  }
+}
