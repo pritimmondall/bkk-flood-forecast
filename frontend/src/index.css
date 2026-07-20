@@ -1,111 +1,441 @@
-:root {
-  --text: #6b6375;
-  --text-h: #08060d;
-  --bg: #fff;
-  --border: #e5e4e7;
-  --code-bg: #f4f3ec;
-  --accent: #aa3bff;
-  --accent-bg: rgba(170, 59, 255, 0.1);
-  --accent-border: rgba(170, 59, 255, 0.5);
-  --social-bg: rgba(244, 243, 236, 0.5);
-  --shadow:
-    rgba(0, 0, 0, 0.1) 0 10px 15px -3px, rgba(0, 0, 0, 0.05) 0 4px 6px -2px;
+/**
+ * index.css
+ * ─────────────────────────────────────────────────────────────────────────────
+ * Global styles for the AI-Based Urban Flood Forecasting System dashboard.
+ *
+ * Design system: "HUD Command Centre"
+ *   Main bg:   #0f172a  (slate-900)
+ *   Card bg:   glassmorphism — #0f172a/80 + backdrop-blur
+ *   Borders:   #334155/50  (slate-700 softened)
+ *   Text:      #f1f5f9 / #94a3b8 / #64748b  (slate-100/400/500)
+ *
+ * No pure #000 or #FFF used anywhere per design specification.
+ * ─────────────────────────────────────────────────────────────────────────────
+ */
 
-  --sans: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --heading: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --mono: ui-monospace, Consolas, monospace;
+@import "tailwindcss";
 
-  font: 18px/145% var(--sans);
-  letter-spacing: 0.18px;
-  color-scheme: light dark;
-  color: var(--text);
-  background: var(--bg);
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
+/* ─── Dashboard card utility class — GLASSMORPHISM ────────────────────────────
+ * Frosted glass panel floating over the dark background.
+ * Applied via className="dashboard-card" on section/div containers.
+ */
+@layer components {
+  .dashboard-card {
+    border-radius: 0.75rem; /* rounded-xl */
+    border-width: 1px; /* border */
+    border-color: rgba(51, 65, 85, 0.5); /* border-slate-700/50 */
+    padding: 1rem; /* p-4 */
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1); /* shadow-lg */
+    background: rgba(15, 23, 42, 0.80);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.05),
+      0 10px 15px -3px rgba(0, 0, 0, 0.3),
+      0 4px 6px -4px rgba(0, 0, 0, 0.3);
+  }
+}
+
+/* ─── HUD monospace font ──────────────────────────────────────────────────────
+ * Override Tailwind's default font-mono with JetBrains Mono for instrument
+ * readout styling on data values.
+ */
+@layer base {
+  .font-mono {
+    font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, 'SF Mono',
+      Menlo, Consolas, 'Liberation Mono', monospace;
+  }
+}
+
+/* ─── Custom dark scrollbar ───────────────────────────────────────────────────
+ * Thin dark indicator scrollbar that matches the dark design system.
+ * Used by EventLogScrollableList and other scrollable panels.
+ */
+::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #334155;
+  border-radius: 2px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #475569;
+}
+
+/* Firefox scrollbar */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #334155 transparent;
+}
+
+/* ─── Base resets ─────────────────────────────────────────────────────────────
+ * Ensure the full viewport height is consumed without body overflow.
+ */
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  background-color: #0f172a;
+  color: #f1f5f9;
+  font-family:
+    "Inter",
+    "Segoe UI",
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
 
-  @media (max-width: 1024px) {
-    font-size: 16px;
+/* ─── Animated Map Marker — sonar ping (critical: red) ───────────────────────
+ * Pulsing ring used on custom L.divIcon markers for critical flood zones.
+ */
+@keyframes marker-ping-red {
+  0% {
+    transform: scale(1);
+    opacity: 0.8;
+  }
+
+  70% {
+    transform: scale(2.5);
+    opacity: 0;
+  }
+
+  100% {
+    transform: scale(2.5);
+    opacity: 0;
   }
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --text: #9ca3af;
-    --text-h: #f3f4f6;
-    --bg: #16171d;
-    --border: #2e303a;
-    --code-bg: #1f2028;
-    --accent: #c084fc;
-    --accent-bg: rgba(192, 132, 252, 0.15);
-    --accent-border: rgba(192, 132, 252, 0.5);
-    --social-bg: rgba(47, 48, 58, 0.5);
-    --shadow:
-      rgba(0, 0, 0, 0.4) 0 10px 15px -3px, rgba(0, 0, 0, 0.25) 0 4px 6px -2px;
+.marker-ping-red {
+  animation: marker-ping-red 2s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+
+/* ─── Animated Map Marker — sonar ping (watch: blue) ─────────────────────────
+ * Pulsing ring used on custom L.divIcon markers for watch/floodbot zones.
+ */
+@keyframes marker-ping-blue {
+  0% {
+    transform: scale(1);
+    opacity: 0.8;
   }
 
-  #social .button-icon {
-    filter: invert(1) brightness(2);
+  70% {
+    transform: scale(2.5);
+    opacity: 0;
+  }
+
+  100% {
+    transform: scale(2.5);
+    opacity: 0;
   }
 }
 
-#root {
-  width: 1126px;
-  max-width: 100%;
-  margin: 0 auto;
-  text-align: center;
-  border-inline: 1px solid var(--border);
-  min-height: 100svh;
+.marker-ping-blue {
+  animation: marker-ping-blue 2s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+
+/* ─── SVG animation utility classes ──────────────────────────────────────────
+ * Used by floodbot sensor ping rings on the map panels.
+ */
+@keyframes ping-slow {
+
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.6;
+  }
+
+  50% {
+    transform: scale(1.8);
+    opacity: 0;
+  }
+}
+
+.animate-ping-slow {
+  animation: ping-slow 2.5s ease-out infinite;
+}
+
+/* ─── Heatmap Forecast Zone — slow throb ─────────────────────────────────────
+ * Applied to the radial gradient SVG overlay replacing the flat red Circle.
+ */
+@keyframes forecast-throb {
+
+  0%,
+  100% {
+    opacity: 0.7;
+    transform: translate(-50%, -50%) scale(1);
+  }
+
+  50% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1.08);
+  }
+}
+
+.forecast-zone-pulse {
+  animation: forecast-throb 3s ease-in-out infinite;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   LANDING PAGE STYLES
+   Premium dark navy theme with gold/brass + neon blue/teal accents.
+═══════════════════════════════════════════════════════════════════════════ */
+
+/* ─── Page container ──────────────────────────────────────────────────────── */
+.landing-page {
+  min-height: 100vh;
+  overflow-y: auto;
+  background-color: #060b18;
+  color: #f1f5f9;
+  font-family: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
+}
+
+/* ─── Hero Section ────────────────────────────────────────────────────────── */
+.landing-hero {
+  position: relative;
+  min-height: 100vh;
   display: flex;
   flex-direction: column;
-  box-sizing: border-box;
+  overflow: hidden;
 }
 
-body {
-  margin: 0;
+.landing-hero-bg {
+  position: absolute;
+  inset: 0;
+  background-image: url("/images/bangkok-hero.png");
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  opacity: 0.35;
+  z-index: 0;
 }
 
-h1,
-h2 {
-  font-family: var(--heading);
-  font-weight: 500;
-  color: var(--text-h);
+.landing-hero-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background:
+    linear-gradient(180deg, rgba(6, 11, 24, 0.7) 0%, rgba(6, 11, 24, 0.4) 40%, rgba(6, 11, 24, 0.85) 100%),
+    radial-gradient(ellipse at 50% 60%, rgba(6, 182, 212, 0.08) 0%, transparent 70%);
 }
 
-h1 {
-  font-size: 56px;
-  letter-spacing: -1.68px;
-  margin: 32px 0;
-  @media (max-width: 1024px) {
-    font-size: 36px;
-    margin: 20px 0;
+/* ─── Navigation ──────────────────────────────────────────────────────────── */
+.landing-nav {
+  position: relative;
+  z-index: 10;
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid rgba(51, 65, 85, 0.3);
+}
+
+.landing-nav-inner {
+  max-width: 72rem;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+/* ─── Hero Content ────────────────────────────────────────────────────────── */
+.landing-hero-content {
+  position: relative;
+  z-index: 10;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem 1.5rem;
+}
+
+/* ─── Main Headline ───────────────────────────────────────────────────────── */
+.landing-title {
+  text-align: center;
+  font-size: 2.5rem;
+  line-height: 1.15;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+@media (min-width: 768px) {
+  .landing-title {
+    font-size: 3.5rem;
   }
 }
-h2 {
-  font-size: 24px;
-  line-height: 118%;
-  letter-spacing: -0.24px;
-  margin: 0 0 8px;
-  @media (max-width: 1024px) {
-    font-size: 20px;
-  }
-}
-p {
-  margin: 0;
+
+.landing-title-gradient {
+  display: block;
+  background: linear-gradient(135deg, #06b6d4 0%, #3b82f6 50%, #a855f7 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
-code,
-.counter {
-  font-family: var(--mono);
+/* ─── Holographic System Panel ────────────────────────────────────────────── */
+.landing-holo-panel {
+  margin-top: 2.5rem;
+  width: 100%;
+  max-width: 48rem;
+}
+
+.landing-holo-inner {
+  border-radius: 1rem;
+  border: 1px solid rgba(6, 182, 212, 0.2);
+  background: rgba(6, 11, 24, 0.75);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  padding: 1.5rem;
+  box-shadow:
+    0 0 40px rgba(6, 182, 212, 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   LOGIN BUTTONS — gold citizen + blue gov variants
+═══════════════════════════════════════════════════════════════════════════ */
+
+.login-btn {
   display: inline-flex;
-  border-radius: 4px;
-  color: var(--text-h);
+  align-items: center;
+  gap: 0.625rem;
+  padding: 0.875rem 2rem;
+  border-radius: 0.625rem;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
 }
 
-code {
-  font-size: 15px;
-  line-height: 135%;
-  padding: 4px 8px;
-  background: var(--code-bg);
+.login-btn-icon {
+  display: flex;
+  align-items: center;
+  opacity: 0.85;
+}
+
+/* ─── Citizen button — warm gold/brass metallic ───────────────────────────── */
+.login-btn-citizen {
+  background: linear-gradient(135deg, #92711a 0%, #d4a438 40%, #b8922a 70%, #8b6e1b 100%);
+  color: #fef3c7;
+  border-color: rgba(212, 164, 56, 0.5);
+  box-shadow:
+    0 1px 3px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.15);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+.login-btn-citizen:hover {
+  background: linear-gradient(135deg, #a37e1f 0%, #e4b640 40%, #c8a030 70%, #9b7c20 100%);
+  transform: translateY(-2px) scale(1.03);
+  box-shadow:
+    0 0 20px rgba(212, 164, 56, 0.45),
+    0 0 40px rgba(212, 164, 56, 0.2),
+    0 8px 30px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  filter: brightness(1.1);
+}
+
+.login-btn-citizen:active {
+  transform: translateY(0) scale(1);
+  box-shadow:
+    0 0 10px rgba(212, 164, 56, 0.3),
+    inset 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+/* ─── Gov button — cool blue/teal neon ────────────────────────────────────── */
+.login-btn-gov {
+  background: linear-gradient(135deg, #0e4874 0%, #1472a4 40%, #0f5f88 70%, #0a3d60 100%);
+  color: #cffafe;
+  border-color: rgba(20, 114, 164, 0.5);
+  box-shadow:
+    0 1px 3px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+.login-btn-gov:hover {
+  background: linear-gradient(135deg, #126099 0%, #1a88c2 40%, #147aa0 70%, #0d5278 100%);
+  transform: translateY(-2px) scale(1.03);
+  box-shadow:
+    0 0 20px rgba(6, 182, 212, 0.45),
+    0 0 40px rgba(6, 182, 212, 0.2),
+    0 8px 30px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.15);
+  filter: brightness(1.1);
+}
+
+.login-btn-gov:active {
+  transform: translateY(0) scale(1);
+  box-shadow:
+    0 0 10px rgba(6, 182, 212, 0.3),
+    inset 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+/* ─── Features Section ────────────────────────────────────────────────────── */
+.landing-features {
+  padding: 5rem 0;
+  background: linear-gradient(180deg, #060b18 0%, #0a1628 50%, #060b18 100%);
+}
+
+.landing-feature-card {
+  border-radius: 0.75rem;
+  border: 1px solid rgba(51, 65, 85, 0.4);
+  background: rgba(15, 23, 42, 0.6);
+  padding: 1.5rem;
+  transition: all 0.3s ease;
+}
+
+.landing-feature-card:hover {
+  border-color: rgba(6, 182, 212, 0.3);
+  background: rgba(15, 23, 42, 0.8);
+  transform: translateY(-4px);
+  box-shadow: 0 8px 32px rgba(6, 182, 212, 0.08);
+}
+
+/* ─── CTA Link ────────────────────────────────────────────────────────────── */
+.landing-cta-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.75rem;
+  border-radius: 0.625rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #fef3c7;
+  background: linear-gradient(135deg, #92711a 0%, #d4a438 50%, #92711a 100%);
+  border: 1px solid rgba(212, 164, 56, 0.4);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow:
+    0 1px 3px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+.landing-cta-link:hover {
+  transform: translateY(-2px);
+  box-shadow:
+    0 0 20px rgba(212, 164, 56, 0.35),
+    0 6px 24px rgba(0, 0, 0, 0.3);
+  filter: brightness(1.1);
 }
