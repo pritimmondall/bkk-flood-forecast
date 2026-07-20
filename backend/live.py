@@ -158,5 +158,7 @@ def build_live_rows(stations: list[str], feature_names: list[str],
         row["site_timestamp"] = now
         rows.append(row)
     df = pd.DataFrame(rows)
-    df["station_code"] = df["station_code"].astype("category")
+    # The category order is part of the trained LightGBM model's feature
+    # encoding. ``stations`` comes from the artifact in model-only deployments.
+    df["station_code"] = pd.Categorical(df["station_code"], categories=stations)
     return df

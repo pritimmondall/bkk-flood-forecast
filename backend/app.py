@@ -32,6 +32,7 @@ from __future__ import annotations
 import json
 import os
 from pathlib import Path
+from typing import Optional
 
 import joblib
 import lightgbm as lgb
@@ -40,6 +41,7 @@ import pandas as pd
 import pyarrow as pa
 import pyarrow.parquet as pq
 from fastapi import FastAPI, HTTPException, Query
+from fastapi.middleware.cors import CORSMiddleware
 
 ROOT = Path(__file__).resolve().parent.parent
 ARTIFACTS = ROOT / "models" / "artifacts"
@@ -53,13 +55,48 @@ PERSISTENCE_ONLY = {(30, 1), (30, 3)}     # tier-30 short horizons
 
 app = FastAPI(title="BKK Flood Forecast API", version="0.1.0",
               description="Model output contract for the BMA flood dashboard. "
-                          "Prototype — alerts are CAP status=Test only.")
+              "Prototype — alerts are CAP status=Test only.")
+
+# The Vite dashboard runs on a different local origin during development.
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=os.environ.get(
+        "CORS_ORIGINS", "http://localhost:5173,http://127.0.0.1:5173"
+    ).split(","),
+    allow_credentials=False,
+    allow_methods=["GET"],
+    allow_headers=["*"],
+)
 
 # ---------------------------------------------------------------------------
 # Artifacts + replay data (loaded once at startup)
 # ---------------------------------------------------------------------------
 
-_meta = json.loads((TRAINING_DIR / "features.json").read_text())
+def _model_only_metadata() -> tuple[dict, list[str]]:
+    """Recover the serving schema from a LightGBM text artifact.
+
+    This keeps the live, rain-driven endpoint usable when the large training
+    parquet files were intentionally excluded from a deployment bundle.
+    """
+    text = (ARTIFACTS / "clf_ge15_1h.txt").read_text(encoding="utf-8")
+    feature_line = next(line for line in text.splitlines()
+                        if line.startswith("feature_names="))
+    features = feature_line.removeprefix("feature_names=").split()
+    categories_line = next(line for line in text.splitlines()
+                           if line.startswith("pandas_categorical:"))
+    categories = json.loads(categories_line.split(":", 1)[1])[0]
+    return {"features": [f for f in features if f != "station_code"],
+            "cadence_min": None}, categories
+
+
+FEATURES_FILE = TRAINING_DIR / "features.json"
+REPLAY_AVAILABLE = FEATURES_FILE.exists() and (TRAINING_DIR / f"{SPLIT}.parquet").exists()
+if REPLAY_AVAILABLE:
+    _meta = json.loads(FEATURES_FILE.read_text())
+    _model_stations: list[str] = []
+else:
+    _meta, _model_stations = _model_only_metadata()
+
 FEATURES = _meta["features"] + ["station_code"]
 _ev = json.loads((ARTIFACTS / "eval_summary.json").read_text())
 THRESHOLDS = _ev["thresholds"]
@@ -80,9 +117,14 @@ def _load_replay() -> pd.DataFrame:
     return df.sort_values("site_timestamp").reset_index(drop=True)
 
 
-DATA = _load_replay()
-TS_VALUES = DATA["site_timestamp"].to_numpy()
-STATIONS = sorted(DATA["station_code"].unique())
+if REPLAY_AVAILABLE:
+    DATA = _load_replay()
+    TS_VALUES = DATA["site_timestamp"].to_numpy()
+    STATIONS = sorted(DATA["station_code"].unique())
+else:
+    DATA = pd.DataFrame()
+    TS_VALUES = np.array([], dtype="datetime64[ns]")
+    STATIONS = sorted(_model_stations)
 
 
 def _load_coords() -> dict[str, tuple[float, float]]:
@@ -106,7 +148,30 @@ def _load_coords() -> dict[str, tuple[float, float]]:
 COORDS = _load_coords()
 
 
+def _add_centroid_fallbacks() -> None:
+    """Use district centroids when the optional station registry is absent."""
+    import csv
+    path = Path(__file__).parent / "district_centroids.csv"
+    centroids: dict[str, tuple[float, float]] = {}
+    if path.exists():
+        with open(path, newline="", encoding="utf-8") as f:
+            for row in csv.DictReader(f):
+                try:
+                    centroids[row["prefix"]] = (float(row["lat"]), float(row["lon"]))
+                except (KeyError, ValueError):
+                    continue
+    for code in STATIONS:
+        if code not in COORDS:
+            lat, lon = centroids.get(code.split(".")[1], (13.7563, 100.5018))
+            COORDS[code] = (lat, lon, None)
+
+
+_add_centroid_fallbacks()
+
+
 def _rows_at(ts: pd.Timestamp) -> pd.DataFrame:
+    if not REPLAY_AVAILABLE:
+        raise HTTPException(503, "replay data is not installed; use /forecast/live")
     lo = np.searchsorted(TS_VALUES, np.datetime64(ts), side="left")
     hi = np.searchsorted(TS_VALUES, np.datetime64(ts), side="right")
     return DATA.iloc[lo:hi]
@@ -209,7 +274,7 @@ def map_page():
 @app.get("/health")
 def health():
     return {"status": "ok", "split": SPLIT, "stations": len(STATIONS),
-            "models": len(CLF) + len(REG)}
+            "models": len(CLF) + len(REG), "replay_available": REPLAY_AVAILABLE}
 
 
 @app.get("/stations")
@@ -220,6 +285,8 @@ def stations():
 
 @app.get("/range")
 def ts_range():
+    if not REPLAY_AVAILABLE:
+        raise HTTPException(503, "replay data is not installed; /range is unavailable")
     return {"split": SPLIT,
             "min_ts": str(pd.Timestamp(TS_VALUES[0])),
             "max_ts": str(pd.Timestamp(TS_VALUES[-1])),
@@ -242,7 +309,7 @@ def to_geojson(preds: list[dict], meta: dict) -> dict:
 
 @app.get("/forecast")
 def forecast(ts: str = Query(..., description="e.g. 2025-09-15T14:00:00"),
-             station: str | None = None,
+             station: Optional[str] = None,
              format: str = Query("json", description="json | geojson")):
     stamp = pd.Timestamp(ts)
     preds = predict_at(stamp)
@@ -279,7 +346,7 @@ def forecast_area(ts: str, prefix: str):
 
 
 @app.get("/forecast/live")
-def forecast_live(station: str | None = None,
+def forecast_live(station: Optional[str] = None,
                   format: str = Query("json", description="json | geojson")):
     """LIVE mode: rain from Open-Meteo right now; BMA sensor features are
     marked missing (same as a sensor outage in training). Rain+climatology
