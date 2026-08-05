@@ -13,234 +13,234 @@
       "train_rows": 883454,
       "train_positives": 22122,
       "val_positives": 1664,
-      "pr_auc": 0.4671,
+      "pr_auc": 0.4668,
       "best_f2_point": {
-        "f2": 0.3309,
-        "threshold": 0.8258776161168404,
-        "precision": 0.115,
-        "recall": 0.6232
+        "f2": 0.3302,
+        "threshold": 0.7710313670196239,
+        "precision": 0.1148,
+        "recall": 0.622
       },
       "persistence": {
         "f2": 0.4679,
         "precision": 0.7864,
         "recall": 0.4249
       },
-      "best_iteration": 170,
-      "train_seconds": 40.4
+      "best_iteration": 236,
+      "train_seconds": 48.5
     },
     "ge15_1h": {
       "train_rows": 868478,
       "train_positives": 6358,
       "val_positives": 280,
-      "pr_auc": 0.4179,
+      "pr_auc": 0.419,
       "best_f2_point": {
-        "f2": 0.4195,
-        "threshold": 0.9185769148504623,
-        "precision": 0.3555,
-        "recall": 0.4393
+        "f2": 0.4161,
+        "threshold": 0.94572425735066,
+        "precision": 0.3526,
+        "recall": 0.4357
       },
       "persistence": {
         "f2": 0.4223,
         "precision": 0.7279,
         "recall": 0.3821
       },
-      "best_iteration": 152,
-      "train_seconds": 37.9
+      "best_iteration": 130,
+      "train_seconds": 34.6
     },
     "ge30_1h": {
       "train_rows": 863670,
       "train_positives": 1297,
       "val_positives": 40,
-      "pr_auc": 0.0002,
+      "pr_auc": 0.144,
       "best_f2_point": {
-        "f2": 0.0011,
-        "threshold": 1.0,
-        "precision": 0.0002,
-        "recall": 0.8
+        "f2": 0.1059,
+        "threshold": 0.9999999999498321,
+        "precision": 0.0248,
+        "recall": 0.575
       },
       "persistence": {
         "f2": 0.3672,
         "precision": 0.7647,
         "recall": 0.325
       },
-      "best_iteration": 85,
-      "train_seconds": 26.3
+      "best_iteration": 1,
+      "train_seconds": 16.1
     },
     "ge5_3h": {
       "train_rows": 902294,
       "train_positives": 42116,
       "val_positives": 3622,
-      "pr_auc": 0.2198,
+      "pr_auc": 0.2223,
       "best_f2_point": {
-        "f2": 0.2234,
-        "threshold": 0.835887852401774,
-        "precision": 0.1165,
-        "recall": 0.2899
+        "f2": 0.2236,
+        "threshold": 0.8346537178318019,
+        "precision": 0.1166,
+        "recall": 0.2902
       },
       "persistence": {
         "f2": 0.2289,
         "precision": 0.7937,
         "recall": 0.1944
       },
-      "best_iteration": 169,
-      "train_seconds": 45.5
+      "best_iteration": 170,
+      "train_seconds": 48.8
     },
     "ge15_3h": {
       "train_rows": 873432,
       "train_positives": 11735,
       "val_positives": 642,
-      "pr_auc": 0.1774,
+      "pr_auc": 0.1981,
       "best_f2_point": {
-        "f2": 0.2162,
-        "threshold": 0.9103148908397882,
-        "precision": 0.3642,
-        "recall": 0.1963
+        "f2": 0.2299,
+        "threshold": 0.9108097406405223,
+        "precision": 0.3873,
+        "recall": 0.2087
       },
       "persistence": {
         "f2": 0.1989,
         "precision": 0.7347,
         "recall": 0.1682
       },
-      "best_iteration": 169,
-      "train_seconds": 43.3
+      "best_iteration": 163,
+      "train_seconds": 46.5
     },
     "ge30_3h": {
       "train_rows": 864320,
       "train_positives": 2143,
       "val_positives": 90,
-      "pr_auc": 0.0084,
+      "pr_auc": 0.03,
       "best_f2_point": {
-        "f2": 0.0829,
-        "threshold": 1.0,
-        "precision": 0.0201,
-        "recall": 0.3778
+        "f2": 0.1469,
+        "threshold": 0.9999974443251203,
+        "precision": 0.0592,
+        "recall": 0.2333
       },
       "persistence": {
         "f2": 0.1724,
         "precision": 0.7647,
         "recall": 0.1444
       },
-      "best_iteration": 32,
-      "train_seconds": 27.2
+      "best_iteration": 1,
+      "train_seconds": 19.6
     },
     "ge5_6h": {
       "train_rows": 929822,
       "train_positives": 71362,
       "val_positives": 6508,
-      "pr_auc": 0.1272,
+      "pr_auc": 0.1328,
       "best_f2_point": {
-        "f2": 0.1522,
-        "threshold": 0.8492457262319713,
-        "precision": 0.1184,
-        "recall": 0.164
+        "f2": 0.1491,
+        "threshold": 0.8432797723571823,
+        "precision": 0.116,
+        "recall": 0.1606
       },
       "persistence": {
         "f2": 0.1304,
         "precision": 0.7932,
         "recall": 0.1079
       },
-      "best_iteration": 140,
-      "train_seconds": 39.3
+      "best_iteration": 160,
+      "train_seconds": 49.1
     },
     "ge15_6h": {
       "train_rows": 880740,
       "train_positives": 19697,
       "val_positives": 1184,
-      "pr_auc": 0.1018,
+      "pr_auc": 0.1012,
       "best_f2_point": {
-        "f2": 0.122,
-        "threshold": 0.9516104025990559,
-        "precision": 0.3594,
-        "recall": 0.1047
+        "f2": 0.126,
+        "threshold": 0.9555843824678248,
+        "precision": 0.371,
+        "recall": 0.1081
       },
       "persistence": {
         "f2": 0.1106,
         "precision": 0.7347,
         "recall": 0.0912
       },
-      "best_iteration": 162,
-      "train_seconds": 45.2
+      "best_iteration": 155,
+      "train_seconds": 47.6
     },
     "ge30_6h": {
       "train_rows": 865240,
       "train_positives": 3381,
       "val_positives": 164,
-      "pr_auc": 0.0868,
+      "pr_auc": 0.0954,
       "best_f2_point": {
-        "f2": 0.1199,
-        "threshold": 0.3452253015309059,
-        "precision": 0.0696,
-        "recall": 0.1463
+        "f2": 0.1099,
+        "threshold": 0.06729511429072497,
+        "precision": 0.0638,
+        "recall": 0.1341
       },
       "persistence": {
         "f2": 0.0966,
         "precision": 0.7647,
         "recall": 0.0793
       },
-      "best_iteration": 376,
-      "train_seconds": 95.4
+      "best_iteration": 782,
+      "train_seconds": 148.3
     }
   },
   "quantile_regressors": {
     "q05_1h": {
       "pinball": 0.0005,
       "pinball_persistence": 0.0007,
-      "coverage": 0.9975,
-      "best_iteration": 125
+      "coverage": 0.9966,
+      "best_iteration": 288
     },
     "q25_1h": {
       "pinball": 0.0017,
       "pinball_persistence": 0.0017,
-      "coverage": 0.9979,
+      "coverage": 0.9969,
       "best_iteration": 400
     },
     "q50_1h": {
-      "pinball": 0.0029,
+      "pinball": 0.003,
       "pinball_persistence": 0.0029,
       "coverage": 0.9984,
-      "best_iteration": 310
+      "best_iteration": 159
     },
     "q75_1h": {
       "pinball": 0.0041,
       "pinball_persistence": 0.0041,
-      "coverage": 0.9989,
-      "best_iteration": 184
+      "coverage": 0.999,
+      "best_iteration": 56
     },
     "q95_1h": {
       "pinball": 0.0047,
       "pinball_persistence": 0.0051,
       "coverage": 0.9992,
-      "best_iteration": 30
+      "best_iteration": 27
     },
     "q05_3h": {
       "pinball": 0.001,
       "pinball_persistence": 0.0011,
-      "coverage": 0.9952,
-      "best_iteration": 400
+      "coverage": 0.997,
+      "best_iteration": 1
     },
     "q25_3h": {
       "pinball": 0.0041,
       "pinball_persistence": 0.0041,
-      "coverage": 0.9965,
-      "best_iteration": 400
+      "coverage": 0.9956,
+      "best_iteration": 393
     },
     "q50_3h": {
       "pinball": 0.0078,
       "pinball_persistence": 0.0077,
-      "coverage": 0.9968,
-      "best_iteration": 158
+      "coverage": 0.997,
+      "best_iteration": 123
     },
     "q75_3h": {
       "pinball": 0.0113,
       "pinball_persistence": 0.0114,
-      "coverage": 0.997,
-      "best_iteration": 331
+      "coverage": 0.9974,
+      "best_iteration": 197
     },
     "q95_3h": {
-      "pinball": 0.0137,
+      "pinball": 0.0138,
       "pinball_persistence": 0.0143,
       "coverage": 0.9979,
-      "best_iteration": 38
+      "best_iteration": 22
     },
     "q05_6h": {
       "pinball": 0.0017,
@@ -251,26 +251,26 @@
     "q25_6h": {
       "pinball": 0.0077,
       "pinball_persistence": 0.0076,
-      "coverage": 0.9899,
-      "best_iteration": 396
+      "coverage": 0.9939,
+      "best_iteration": 400
     },
     "q50_6h": {
-      "pinball": 0.0149,
+      "pinball": 0.015,
       "pinball_persistence": 0.0149,
-      "coverage": 0.9952,
-      "best_iteration": 101
+      "coverage": 0.9951,
+      "best_iteration": 120
     },
     "q75_6h": {
       "pinball": 0.0219,
       "pinball_persistence": 0.0221,
-      "coverage": 0.9949,
-      "best_iteration": 112
+      "coverage": 0.9952,
+      "best_iteration": 57
     },
     "q95_6h": {
-      "pinball": 0.0265,
+      "pinball": 0.0267,
       "pinball_persistence": 0.0279,
-      "coverage": 0.9961,
-      "best_iteration": 27
+      "coverage": 0.9962,
+      "best_iteration": 21
     }
   }
 }

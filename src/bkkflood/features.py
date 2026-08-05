@@ -430,6 +430,42 @@ def build_year(year: int,
 
 
 # ===========================================================================
+# Reading the yearly tables back
+# ===========================================================================
+
+def load_training_years(years: Iterable[int] | None = None,
+                        training_dir: Path | None = None,
+                        float32: bool = True) -> pd.DataFrame:
+    """Read the per-year feature tables into one frame.
+
+    Kept as a convenience wrapper; the implementation lives in
+    `bkkflood.data.load_years`, which is also where the memory-lean per-fold
+    loaders are. Two things it handles that a bare `pd.concat` over
+    `pd.read_parquet` does not, and the first is fatal:
+
+    1. **The categorical dtype is silently lost.** Each yearly file carries a
+       different `station_code` category list (the roster grows from 99 sensors
+       to 107), and pandas degrades disagreeing categoricals to plain strings.
+       LightGBM then refuses the frame — "pandas dtypes must be int, float or
+       bool" — and since `station_code` is a model input, training stops dead.
+
+    2. **float64 is twice the memory it needs to be.** 53 float columns across
+       25M rows is about 10 GB. LightGBM bins feature values into its own
+       compact representation regardless, so float32 changes no model input.
+
+    **Prefer `bkkflood.data.load_fold` for training.** This function still holds
+    every year in memory at once (~5.8 GB after downcasting, and more once the
+    train/val/test copies exist). `load_fold` reads one fold, keeps only the
+    columns that model needs, and thins the negatives while reading — which
+    brings a 17-million-row training split down to a few hundred megabytes.
+    """
+    from .data import load_years
+
+    return load_years(years if years is not None else CFG["raw"]["years"],
+                      training_dir=training_dir)
+
+
+# ===========================================================================
 # Feature list bookkeeping
 # ===========================================================================
 

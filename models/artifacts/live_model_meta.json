@@ -1,0 +1,75 @@
+{
+  "features": [
+    "rain_rf1hr_mean",
+    "rain_rf1hr_max",
+    "rain_rf3hr_mean",
+    "rain_rf24hr_mean",
+    "rain_rf1hr_delta1h",
+    "rain_fcst_1h",
+    "rain_fcst_3h",
+    "rain_fcst_6h",
+    "elev_m",
+    "slope_deg",
+    "depression_m",
+    "elev_rank_local",
+    "dist_water_km",
+    "cal_hour_sin",
+    "cal_hour_cos",
+    "cal_doy_sin",
+    "cal_doy_cos",
+    "cal_monsoon"
+  ],
+  "purpose": "live mode (BMA depth sensors unavailable) \u2014 rain-driven forecast; weaker than the sensor-fed model by design",
+  "tiers": [
+    5,
+    15,
+    30
+  ],
+  "horizons": [
+    1,
+    3,
+    6
+  ],
+  "quantiles": [
+    50,
+    95
+  ],
+  "test_metrics": {
+    "clf_ge5_1h": {
+      "test_pr_auc": 0.1328,
+      "positives": 2683
+    },
+    "clf_ge15_1h": {
+      "test_pr_auc": 0.0359,
+      "positives": 843
+    },
+    "clf_ge30_1h": {
+      "test_pr_auc": 0.0009,
+      "positives": 119
+    },
+    "clf_ge5_3h": {
+      "test_pr_auc": 0.0704,
+      "positives": 5330
+    },
+    "clf_ge15_3h": {
+      "test_pr_auc": 0.027,
+      "positives": 1732
+    },
+    "clf_ge30_3h": {
+      "test_pr_auc": 0.0008,
+      "positives": 264
+    },
+    "clf_ge5_6h": {
+      "test_pr_auc": 0.0439,
+      "positives": 9221
+    },
+    "clf_ge15_6h": {
+      "test_pr_auc": 0.0263,
+      "positives": 3051
+    },
+    "clf_ge30_6h": {
+      "test_pr_auc": 0.0004,
+      "positives": 482
+    }
+  }
+}
