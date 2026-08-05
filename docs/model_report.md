@@ -11,9 +11,9 @@
 >
 > Nothing here is quoted without saying where it came from.
 >
-> **Status:** §5 carries an unresolved threshold-selection defect that holds
-> precision far below what the trained models can reach. Read the boxed warning
-> in §5 before quoting any precision, F1 or F2 figure from this run.
+> **Status:** the model beats persistence at all three horizons on the primary
+> tier, but its median event lead time is 0 minutes and onset recall at 1 h is
+> 13%. Read §5 on both before describing this as a forecasting system.
 
 ---
 
@@ -178,71 +178,96 @@ spread matters.
 
 | Horizon | Precision | Recall | Recall range | F1 | F2 | Miss rate (FNR) | PR-AUC |
 |---|---|---|---|---|---|---|---|
-| 1 h | 0.054 | 0.707 | 0.64 – 0.78 | 0.099 | 0.201 | 0.293 | 0.497 |
-| 3 h | 0.063 | 0.385 | 0.30 – 0.46 | 0.107 | 0.187 | 0.615 | 0.264 |
-| 6 h | 0.062 | 0.235 | 0.14 – 0.29 | 0.097 | 0.148 | 0.765 | 0.160 |
+| 1 h | 0.599 | 0.554 | 0.39 – 0.66 | 0.570 | 0.559 | 0.446 | 0.497 |
+| 3 h | 0.457 | 0.300 | 0.21 – 0.39 | 0.361 | 0.321 | 0.701 | 0.264 |
+| 6 h | 0.441 | 0.174 | 0.11 – 0.23 | 0.249 | 0.198 | 0.826 | 0.160 |
 
 **5 cm and 30 cm**
 
-| Tier | Horizon | Precision | Recall | F1 | F2 | Miss rate |
-|---|---|---|---|---|---|---|
-| 5 cm | 1 h | 0.154 | 0.612 | 0.244 | 0.379 | 0.388 |
-| 5 cm | 3 h | 0.163 | 0.312 | 0.211 | 0.260 | 0.688 |
-| 5 cm | 6 h | 0.161 | 0.189 | 0.169 | 0.179 | 0.811 |
-| 30 cm | 1 h | 0.522 | 0.557 | 0.427 | 0.401 | 0.443 |
-| 30 cm | 3 h | 0.262 | 0.347 | 0.206 | 0.216 | 0.653 |
-| 30 cm | 6 h | 0.009 | 0.292 | 0.018 | 0.041 | 0.708 |
+| Tier | Horizon | Precision | Recall | F1 | F2 | Miss rate | PR-AUC |
+|---|---|---|---|---|---|---|---|
+| 5 cm | 1 h | 0.632 | 0.514 | 0.564 | 0.533 | 0.486 | 0.472 |
+| 5 cm | 3 h | 0.565 | 0.265 | 0.356 | 0.295 | 0.735 | 0.255 |
+| 5 cm | 6 h | 0.187 | 0.187 | 0.176 | 0.181 | 0.813 | 0.162 |
+| 30 cm | 1 h | 0.575 | 0.533 | 0.535 | 0.529 | 0.467 | 0.449 |
+| 30 cm | 3 h | 0.218 | 0.342 | 0.241 | 0.280 | 0.658 | 0.204 |
+| 30 cm | 6 h | 0.314 | 0.192 | 0.233 | 0.205 | 0.808 | 0.161 |
 
 The configured 50% ceiling on the miss rate is breached in six of the nine
 combinations — every 3 h and 6 h row. That is reported rather than fixed by
-moving the threshold, which would only trade misses for false alarms.
+moving the threshold, which would only trade misses for false alarms. At 1 h all
+three tiers sit just inside the ceiling (0.446 / 0.486 / 0.467).
+
+**Recall varies enormously between years.** At 15 cm / 1 h the range across the
+four test years is 0.39 to 0.66. A single number here would be misleading; an
+operator planning staffing needs to know a bad year looks nothing like a good
+one.
 
 **Event level, 2025, 1 h model.** Of 112 flood events the system warned about
-111 (**POD 0.99**) with a **median 15 minutes** of lead time (mean 24.1). Event
-POD far exceeds row recall because a long flood only has to be caught once.
-False alarm ratio at the event level is 0.96.
+111 — **POD 0.99** — from 957 alarms, an event-level false alarm ratio of 0.674
+and CSI 0.147.
 
-> ### ⚠ These numbers understate the model, and are not yet fit to publish
->
-> Precision collapsed to ~0.05 at the 15 cm tier because the selected
-> thresholds are near zero — effectively "alarm on everything". `constraints_met`
-> is `False` on 33 of the 36 fold rows.
->
-> The cause is the candidate set in `threshold_sweep` (`src/bkkflood/metrics.py`),
-> not the model. Candidates are evenly spaced **rank** quantiles, so the top two
-> are the 99.5th percentile and the maximum, with nothing in between. At a base
-> rate of 0.009% (294 positives in 3.45M validation rows) the optimum sits near
-> the 99.99th percentile, which the grid cannot see. `pick_threshold` chooses
-> correctly from a candidate set that omits every good option.
->
-> Measured on fold 4 validation, `ge15_1h`, same booster, no retraining:
->
-> | Threshold | Precision | Recall | F2 |
-> |---|---|---|---|
-> | 7.06e-05 *(selected)* | 0.048 | 0.568 | 0.180 |
-> | 99.99th percentile | 0.387 | 0.456 | **0.440** |
->
-> Changing the grid changes every operating point, so it is a modelling decision
-> and has been left alone pending a call. Until it is resolved, the precision,
-> F1 and F2 columns above should be read as a floor, not as the model's ability.
+> **But the median lead time is 0 minutes** (mean 6.6). Half of those "caught"
+> events are detected at or after the water crosses 15 cm, not before it. Event
+> POD of 0.99 therefore describes *detection*, not *warning*, and it should never
+> be quoted to BMA without the lead time beside it. This is the same finding as
+> the onset gap in §4, measured a different way: the general model is close to a
+> very good monitor and some distance from a forecaster.
 
-**Did it beat persistence?** On F2, **no — only 1 of 9** tier–horizon
-combinations (5 cm at 6 h). Persistence scores F2 0.534 / 0.292 / 0.175 at the
-15 cm tier against the model's 0.201 / 0.187 / 0.148. This is a direct
-consequence of the threshold defect above: persistence holds precision ~0.83
-while the model's collapses to ~0.05. Recall is higher for the model at every
-horizon (0.707 vs 0.492 at 1 h).
+**Onset recall — the number that matters.** On rows where the station was **not**
+already at or above the tier, the general model catches only **13% at 1 h**, 6%
+at 3 h and 3% at 6 h, against overall recall of 55 / 30 / 17%. Recall on
+already-flooded rows is 1.00 at every horizon, which a one-line persistence rule
+achieves for free. §4 exists because of this gap and it has not closed.
 
-**Two boosters collapsed.** `clf_ge30_1h` and `onset_ge15_1h` both trained to
-`best_iteration = 1` — the class-imbalance collapse mode. They run without error
-and are worthless. The 30 cm classifier was already known not to work and the
-alert ladder routes severe through the P95 regressor instead, but
-`onset_ge15_1h` is the model §4 is built on, so the 1 h onset figure below
-should not be relied on.
+**Two boosters still collapse.** `clf_ge30_1h` and `onset_ge15_1h` both train to
+`best_iteration = 1`. This is not fixable by threshold selection — early stopping
+uses `average_precision`, which is threshold-free. For `onset_ge15_1h`,
+validation PR-AUC genuinely peaks at a single stump (0.0112) and falls for all
+300 subsequent rounds: fold 4 validates on **2024, the quietest year in the
+record, with only 185 positive onset rows in 3.45 M**. Early stopping is reading
+the data correctly, so the honest conclusion is that this fold cannot train a
+1 h onset model, not that the code is wrong. `clf_ge30_1h` is off the serving
+path — `serving.py` raises Warning from the P95 band and current depth, never
+from the 30 cm classifier — so it costs nothing operationally.
 
-**Depth bands are far too wide.** P05–P95 covers 99.9 / 99.7 / 99.6% of outcomes
-against a 90% target, consistent with the `reg_q95` models stopping at 23–28
-trees. An operator would find the band uninformative.
+**Depth bands remain far too wide.** P05–P95 covers 99.9 / 99.7 / 99.6% of
+outcomes against a 90% target. The `reg_q95` models stop at 23–28 trees. This is
+untouched by the threshold work — quantile regression has no operating point —
+and remains the clearest outstanding defect.
+
+**Did it beat persistence?** Yes — on F2, **8 of 9** tier–horizon combinations.
+
+| Tier | Horizon | Model F2 | Persistence F2 | Gain |
+|---|---|---|---|---|
+| 15 cm | 1 h | 0.559 | 0.534 | +0.025 |
+| 15 cm | 3 h | 0.321 | 0.292 | +0.030 |
+| 15 cm | 6 h | 0.198 | 0.175 | +0.023 |
+| 5 cm | 1 h | 0.533 | 0.526 | +0.007 |
+| 5 cm | 3 h | 0.295 | 0.286 | +0.009 |
+| 5 cm | 6 h | 0.181 | 0.171 | +0.010 |
+| 30 cm | 1 h | 0.529 | 0.525 | +0.005 |
+| 30 cm | 3 h | 0.280 | 0.293 | **−0.014** |
+| 30 cm | 6 h | 0.205 | 0.180 | +0.026 |
+
+The single loss is the 30 cm tier at 3 h, which is the tier the alert ladder
+already routes through the depth regressor rather than a classifier.
+
+Note the shape of the win: persistence holds precision near 0.83 at every
+horizon but its recall decays from 0.49 to 0.15. The model trades a little
+precision for enough extra recall to come out ahead on a recall-weighted metric —
+which is the right trade when a missed flood costs more than a wasted patrol, and
+is exactly why F2 is the objective in `config.yaml`.
+
+> **A note on how these numbers were obtained.** The first full v2 run reported
+> precision ~0.05 at 15 cm and lost to persistence on 8 of 9 combinations. The
+> cause was the candidate set in `threshold_sweep`: evenly spaced **rank**
+> quantiles put the top two candidates at the 99.5th percentile and the maximum,
+> with nothing between, so at a base rate near 1 in 11,000 every feasible
+> operating point was invisible to the search and `constraints_met` was `False`
+> on 33 of 36 rows. The grid is now dense in the upper tail and
+> `constraints_met` holds on 11 of 36. The tables above are from the corrected
+> run; the earlier figures are superseded, not averaged in.
 
 **Version 1 sealed-test results, carried forward for context** (15 cm tier): **[v1]**
 
@@ -252,9 +277,13 @@ trees. An operator would find the band uninformative.
 | 3 h | 0.60 | 0.28 | 0.309 | 0.289 |
 | 6 h | 0.68 | 0.15 | 0.183 | 0.170 |
 
-In v1 the model beat persistence at every horizon. It no longer does, and the
-threshold-resolution defect above is the reason — v1's precision of 0.64 is the
-kind of operating point the current grid can no longer reach.
+**v2 reproduces v1 closely at the 15 cm tier**, which is the strongest available
+evidence that the corrected threshold selection is right rather than merely
+flattering: 1 h precision 0.599 against 0.64, recall 0.554 against 0.55, F2 0.559
+against 0.565 — from a rebuilt feature pipeline, a different split protocol and
+an independently re-derived operating point. v1's numbers came from a single
+sealed test year; v2's are means over four test years, so exact agreement was
+never expected.
 
 **The 6-hour horizon should be read carefully.** Station identity was the largest
 single input there (~39% of gain) in v1, which means the model is substantially
@@ -350,18 +379,20 @@ knew rain was coming and the flood model still scored ~1e-11. This is Bucket 1,
 and it is the more actionable of the two: the signal was present in an input we
 already have.
 
-**Concentration of errors [v2].** The top 10 stations account for **122 of 265
-misses (46%)** across 100 stations. The worst are FL.SMI.01 (21 misses),
-FL.BNA.04 (17) and FL.STN.03 (13). FL.SMI.01, FL.BNA.04 and FL.DDG.02 led the
-same list in version 1 **[v1]** — the concentration is stable across versions,
-which turns "the model misses 29% of flood rows" into a short list of specific
-sites to investigate physically.
+**Concentration of errors [v2].** The top 10 stations account for **176 of 374
+misses (47%)** across 100 stations. The worst are FL.SMI.01 (38 misses),
+FL.BNA.04 (24), FL.CTC.04 (18) and FL.DDG.02 (16). FL.SMI.01, FL.BNA.04 and
+FL.DDG.02 led the same list in version 1 **[v1]** — the concentration is stable
+across versions, which turns "the model misses 45% of flood rows" into a short
+list of specific sites to investigate physically. FL.SMI.01 is independently the
+top entry in `/risk/hotspots` at 48 events over seven years, so the site that
+floods most is also the site the model handles worst.
 
-**The noisiest stations [v2].** FL.PWT.02 produced 1,441 false alarms against 20
-real positives (precision 0.014) and FL.LSI.04 produced 1,017 against 5
-(precision 0.005). A station with many false alarms and almost no real events is
-usually a faulty sensor rather than a modelling problem, and should be checked
-against the quality scorecard before anyone touches the model.
+**The noisiest stations [v2].** FL.PWT.02 produced 60 false alarms against 20
+real positives (precision 0.25) and FL.LSI.04 produced 39 against 5 (precision
+0.11). A station with many false alarms and almost no real events is usually a
+faulty sensor rather than a modelling problem, and should be checked against the
+quality scorecard before anyone touches the model.
 
 **Where the loudest false alarms come from — not the model.** Every one of the
 ten worst false positives has `fl_depth_now` at or above 15 cm and a score of
@@ -370,6 +401,13 @@ They are rows where the road is genuinely flooded *now* but the water recedes
 within the hour, so the forward-looking label is 0. That is a labelling
 consequence of forecasting rather than a model error, and it is worth stating
 plainly before anyone tries to tune it away.
+
+**A caution on the improved false-alarm figures.** Correcting the threshold
+selection cut event-level alarms from 10,440 to 957 and lifted event CSI from
+0.011 to 0.147. It also cut the median event lead time from 15 minutes to **0**.
+The earlier run bought its lead time by firing almost constantly; this one is
+far quieter and correspondingly later. Both facts belong in any summary — quoting
+the alarm reduction without the lead-time loss would misrepresent the change.
 
 ---
 

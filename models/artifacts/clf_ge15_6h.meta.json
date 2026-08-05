@@ -55,7 +55,7 @@
   ],
   "best_iteration": 154,
   "downsample_frac": 1.0,
-  "threshold": 0.49414360267519974,
+  "threshold": 0.9068819139359633,
   "params": {
     "objective": "binary",
     "metric": "average_precision",
