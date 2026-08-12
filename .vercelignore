@@ -1,0 +1,25 @@
+# Vercel ignore — keep the upload small
+# Vercel builds happen server-side from the git repo; these are local-only.
+
+# Local Python virtual environment
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# Heavy data files (54+ GB — model artifacts are in models/ which IS included)
+data/
+
+# Notebooks (not needed for serving)
+notebooks/
+
+# Local dev tooling
+.pytest_cache/
+.claude/
+.DS_Store
+
+# Frontend dev artifacts (Vercel builds frontend separately if needed)
+frontend/node_modules/
+frontend/.vite/
