@@ -6,7 +6,7 @@ requires-python = ">=3.12"
 dependencies = [
     # Core serving
     "fastapi>=0.110",
-    "uvicorn[standard]>=0.29",
+    "uvicorn>=0.29",
     "pydantic>=2.6",
     # Data layer
     "duckdb>=1.0",
@@ -14,12 +14,10 @@ dependencies = [
     "pyarrow>=15.0",
     "numpy>=1.26",
     "PyYAML>=6.0",
-    # Model inference
+    # Model inference (lazy-imported inside ForecastBundle.__init__)
     "lightgbm>=4.3",
-    "scikit-learn>=1.4",
     # Live data collectors
     "httpx>=0.27",
-    "requests>=2.31",
     # CAP alert generation
     "lxml>=5.1",
     "jsonschema>=4.21",
