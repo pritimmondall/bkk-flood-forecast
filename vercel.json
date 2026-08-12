@@ -1,0 +1,41 @@
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "backend/app/main.py",
+      "use": "@vercel/python",
+      "config": {
+        "maxLambdaSize": "250mb",
+        "includeFiles": [
+          "src/**",
+          "config/**",
+          "models/**",
+          "data/interim/**",
+          "backend/**"
+        ]
+      }
+    }
+  ],
+  "routes": [
+    {
+      "src": "/api/(.*)",
+      "dest": "backend/app/main.py"
+    },
+    {
+      "src": "/health",
+      "dest": "backend/app/main.py"
+    },
+    {
+      "src": "/docs",
+      "dest": "backend/app/main.py"
+    },
+    {
+      "src": "/openapi.json",
+      "dest": "backend/app/main.py"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "backend/app/main.py"
+    }
+  ]
+}
