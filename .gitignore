@@ -77,3 +77,4 @@ tmp/
 # irreplaceable — none of the source APIs publish a downloadable past.
 # Back it up separately; losing it means losing time, not just bytes.
 data/live/
+bkk-flood-forecast-p8gy-log-export-*.json
