@@ -1,0 +1,11 @@
+dataset,year,column,values_nulled
+flow,2019,mean_velocity,1256
+flow,2020,mean_velocity,41
+flow,2021,mean_velocity,18
+flow,2022,mean_velocity,1596
+flow,2023,mean_velocity,96
+rain,2023,rf3hr,2
+rain,2023,rf6hr,3
+rain,2023,rf12hr,27
+rain,2023,rf24hr,3
+rain,2024,rf15min,1

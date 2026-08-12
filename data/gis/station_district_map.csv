@@ -1,0 +1,402 @@
+station_code,sensor_type,lat,lon,district,district_true,subdistrict_true
+FL.BBN.01,flood,13.646,100.37,Bang Bon,Bang Bon,Bang Bon
+FL.BBN.02,flood,13.646,100.37,Bang Bon,Bang Bon,Bang Bon
+FL.BKA.01,flood,13.867,100.628,Bang Khen,Bang Khen,Tha Raeng
+FL.BKA.02,flood,13.867,100.628,Bang Khen,Bang Khen,Tha Raeng
+FL.BKE.01,flood,13.7105,100.3975,Bang Khae,Bang Khae,Bang Khae Nuea
+FL.BKE.02,flood,13.7105,100.3975,Bang Khae,Bang Khae,Bang Khae Nuea
+FL.BKL.01,flood,13.69867,100.506,Bang Kho Laem,Bang Kho Laem,Bang Kho Laem
+FL.BKM.01,flood,13.808,100.65,Bueng Kum,Bueng Kum,Khlong Kum
+FL.BKM.02,flood,13.808,100.65,Bueng Kum,Bueng Kum,Khlong Kum
+FL.BKN.01,flood,13.7634,100.4728,Bangkok Noi,Bangkok Noi,Bang Khun Non
+FL.BKN.02,flood,13.7634,100.4728,Bangkok Noi,Bangkok Noi,Bang Khun Non
+FL.BKP.01,flood,13.771,100.6475,Bang Kapi,Bang Kapi,Khlong Chan
+FL.BKP.02,flood,13.771,100.6475,Bang Kapi,Bang Kapi,Khlong Chan
+FL.BKT.01,flood,13.58,100.4145,Bang Khun Thian,Bang Khun Thian,Tha Kham
+FL.BNA.01,flood,13.672,100.616,Bang Na,Bang Na,Bang Na
+FL.BNA.02,flood,13.672,100.616,Bang Na,Bang Na,Bang Na
+FL.BNA.03,flood,13.672,100.616,Bang Na,Bang Na,Bang Na
+FL.BNA.04,flood,13.672,100.616,Bang Na,Bang Na,Bang Na
+FL.BNA.05,flood,13.672,100.616,Bang Na,Bang Na,Bang Na
+FL.BRK.01,flood,13.728,100.5232,Bang Rak,Bang Rak,Si Phraya
+FL.BRK.02,flood,13.728,100.5232,Bang Rak,Bang Rak,Si Phraya
+FL.BSU.01,flood,13.82,100.529,Bang Sue,Bang Sue,Bang Sue
+FL.CTC.01,flood,13.826,100.565,Chatuchak,Chatuchak,Chatuchak
+FL.CTC.02,flood,13.826,100.565,Chatuchak,Chatuchak,Chatuchak
+FL.CTC.03,flood,13.826,100.565,Chatuchak,Chatuchak,Chatuchak
+FL.CTC.04,flood,13.826,100.565,Chatuchak,Chatuchak,Chatuchak
+FL.CTC.05,flood,13.826,100.565,Chatuchak,Chatuchak,Chatuchak
+FL.CTC.06,flood,13.826,100.565,Chatuchak,Chatuchak,Chatuchak
+FL.CTC.07,flood,13.826,100.565,Chatuchak,Chatuchak,Chatuchak
+FL.DDG.01,flood,13.778,100.567,Din Daeng,Din Daeng,Din Daeng
+FL.DDG.02,flood,13.778,100.567,Din Daeng,Din Daeng,Din Daeng
+FL.DDG.03,flood,13.778,100.567,Din Daeng,Din Daeng,Din Daeng
+FL.DDG.04,flood,13.778,100.567,Din Daeng,Din Daeng,Din Daeng
+FL.DDG.05,flood,13.778,100.567,Din Daeng,Din Daeng,Din Daeng
+FL.DDG.06,flood,13.778,100.567,Din Daeng,Din Daeng,Din Daeng
+FL.DDG.07,flood,13.778,100.567,Din Daeng,Din Daeng,Din Daeng
+FL.DDG.08,flood,13.778,100.567,Din Daeng,Din Daeng,Din Daeng
+FL.DST.01,flood,13.7728,100.5154,Dusit,Dusit,Dusit
+FL.DST.02,flood,13.7728,100.5154,Dusit,Dusit,Dusit
+FL.DST.03,flood,13.7728,100.5154,Dusit,Dusit,Dusit
+FL.DST.04,flood,13.7728,100.5154,Dusit,Dusit,Dusit
+FL.DST.05,flood,13.7728,100.5154,Dusit,Dusit,Dusit
+FL.DST.06,flood,13.7728,100.5154,Dusit,Dusit,Dusit
+FL.DST.07,flood,13.7728,100.5154,Dusit,Dusit,Dusit
+FL.DST.08,flood,13.7728,100.5154,Dusit,Dusit,Dusit
+FL.HKG.01,flood,13.77233,100.58067,Huai Khwang,Huai Khwang,Sam Sen Nok
+FL.JTG.01,flood,13.69025,100.4655,Chom Thong,Chom Thong,Chom Thong
+FL.KSN.01,flood,13.7265,100.5025,Khlong San,Khlong San,Khlong Ton Sai
+FL.KTY.01,flood,13.71333,100.57867,Khlong Toei,Khlong Toei,Phra Khanong
+FL.KTY.02,flood,13.71333,100.57867,Khlong Toei,Khlong Toei,Phra Khanong
+FL.KTY.03,flood,13.71333,100.57867,Khlong Toei,Khlong Toei,Phra Khanong
+FL.KTY.04,flood,13.71333,100.57867,Khlong Toei,Khlong Toei,Phra Khanong
+FL.KTY.05,flood,13.71333,100.57867,Khlong Toei,Khlong Toei,Phra Khanong
+FL.LSI.01,flood,13.877,100.572,Lak Si,Lak Si,Thung Song Hong
+FL.LSI.02,flood,13.877,100.572,Lak Si,Lak Si,Thung Song Hong
+FL.LSI.03,flood,13.877,100.572,Lak Si,Lak Si,Thung Song Hong
+FL.LSI.04,flood,13.877,100.572,Lak Si,Lak Si,Thung Song Hong
+FL.LSI.05,flood,13.877,100.572,Lak Si,Lak Si,Thung Song Hong
+FL.LSI.06,flood,13.877,100.572,Lak Si,Lak Si,Thung Song Hong
+FL.MBR.01,flood,13.808,100.7485,Min Buri,Min Buri,Saen Saep
+FL.PKN.01,flood,13.692,100.626,Phra Khanong,Phra Khanong,Bang Chak
+FL.PNK.02,flood,13.75642,100.49925,Phra Nakhon,Phra Nakhon,Bowon Niwet
+FL.PPS.01,flood,13.7512,100.5114,Pom Prap Sattru Phai,Pom Prap Sattru Phai,Khlong Mahanak
+FL.PPS.02,flood,13.7512,100.5114,Pom Prap Sattru Phai,Pom Prap Sattru Phai,Khlong Mahanak
+FL.PTW.01,flood,13.7405,100.53175,Pathum Wan,Pathum Wan,Pathum Wan
+FL.PTW.02,flood,13.7405,100.53175,Pathum Wan,Pathum Wan,Pathum Wan
+FL.PTW.03,flood,13.7405,100.53175,Pathum Wan,Pathum Wan,Pathum Wan
+FL.PTW.04,flood,13.7405,100.53175,Pathum Wan,Pathum Wan,Pathum Wan
+FL.PTW.05,flood,13.7405,100.53175,Pathum Wan,Pathum Wan,Pathum Wan
+FL.PWT.01,flood,13.69533,100.66967,Prawet,Prawet,Nong Bon
+FL.PWT.02,flood,13.69533,100.66967,Prawet,Prawet,Nong Bon
+FL.PYT.01,flood,13.782,100.545,Phaya Thai,Phaya Thai,Sam Sen Nai
+FL.PYT.02,flood,13.782,100.545,Phaya Thai,Phaya Thai,Sam Sen Nai
+FL.PYT.03,flood,13.782,100.545,Phaya Thai,Phaya Thai,Sam Sen Nai
+FL.PYT.04,flood,13.782,100.545,Phaya Thai,Phaya Thai,Sam Sen Nai
+FL.PYT.05,flood,13.782,100.545,Phaya Thai,Phaya Thai,Sam Sen Nai
+FL.PYT.06,flood,13.782,100.545,Phaya Thai,Phaya Thai,Sam Sen Nai
+FL.PYT.07,flood,13.782,100.545,Phaya Thai,Phaya Thai,Sam Sen Nai
+FL.RTW.01,flood,13.756,100.53875,Ratchathewi,Ratchathewi,Thanon Phaya Thai
+FL.RTW.02,flood,13.756,100.53875,Ratchathewi,Ratchathewi,Thanon Phaya Thai
+FL.RTW.03,flood,13.756,100.53875,Ratchathewi,Ratchathewi,Thanon Phaya Thai
+FL.RTW.04,flood,13.756,100.53875,Ratchathewi,Ratchathewi,Thanon Phaya Thai
+FL.RTW.05,flood,13.756,100.53875,Ratchathewi,Ratchathewi,Thanon Phaya Thai
+FL.RTW.06,flood,13.756,100.53875,Ratchathewi,Ratchathewi,Thanon Phaya Thai
+FL.RTW.07,flood,13.756,100.53875,Ratchathewi,Ratchathewi,Thanon Phaya Thai
+FL.RTW.08,flood,13.756,100.53875,Ratchathewi,Ratchathewi,Thanon Phaya Thai
+FL.RTW.09,flood,13.756,100.53875,Ratchathewi,Ratchathewi,Thanon Phaya Thai
+FL.RTW.10,flood,13.756,100.53875,Ratchathewi,Ratchathewi,Thanon Phaya Thai
+FL.RTW.11,flood,13.756,100.53875,Ratchathewi,Ratchathewi,Thanon Phaya Thai
+FL.RTW.12,flood,13.756,100.53875,Ratchathewi,Ratchathewi,Thanon Phaya Thai
+FL.SLG.01,flood,13.726,100.628,Suan Luang,Suan Luang,Suan Luang
+FL.SLG.02,flood,13.726,100.628,Suan Luang,Suan Luang,Suan Luang
+FL.SLG.03,flood,13.726,100.628,Suan Luang,Suan Luang,Suan Luang
+FL.SMI.01,flood,13.905,100.652,Sai Mai,Sai Mai,Sai Mai
+FL.SPW.01,flood,13.738,100.50933,Samphanthawong,Samphanthawong,Samphanthawong
+FL.SPW.02,flood,13.738,100.50933,Samphanthawong,Samphanthawong,Samphanthawong
+FL.STN.01,flood,13.714,100.529,Sathon,Sathon,Yan Nawa
+FL.STN.02,flood,13.714,100.529,Sathon,Sathon,Yan Nawa
+FL.STN.03,flood,13.714,100.529,Sathon,Sathon,Yan Nawa
+FL.STN.04,flood,13.714,100.529,Sathon,Sathon,Yan Nawa
+FL.WTL.01,flood,13.779,100.609,Wang Thonglang,Wang Thonglang,Phlapphla
+FL.WTL.02,flood,13.779,100.609,Wang Thonglang,Wang Thonglang,Phlapphla
+FL.WTL.03,flood,13.779,100.609,Wang Thonglang,Wang Thonglang,Phlapphla
+FL.WTL.04,flood,13.779,100.609,Wang Thonglang,Wang Thonglang,Phlapphla
+FL.WTN.01,flood,13.73267,100.57733,Watthana,Vadhana,Khlong Tan Nuea
+FL.WTN.02,flood,13.73267,100.57733,Watthana,Vadhana,Khlong Tan Nuea
+FL.WTN.03,flood,13.73267,100.57733,Watthana,Vadhana,Khlong Tan Nuea
+RF.BBN.01,rain,13.646,100.37,Bang Bon,Bang Bon,Bang Bon
+RF.BBN.02,rain,13.646,100.37,Bang Bon,Bang Bon,Bang Bon
+RF.BKA.01,rain,13.867,100.628,Bang Khen,Bang Khen,Tha Raeng
+RF.BKA.02,rain,13.867,100.628,Bang Khen,Bang Khen,Tha Raeng
+RF.BKE.01,rain,13.7105,100.3975,Bang Khae,Bang Khae,Bang Khae Nuea
+RF.BKE.02,rain,13.7105,100.3975,Bang Khae,Bang Khae,Bang Khae Nuea
+RF.BKE.03,rain,13.7105,100.3975,Bang Khae,Bang Khae,Bang Khae Nuea
+RF.BKE.04,rain,13.7105,100.3975,Bang Khae,Bang Khae,Bang Khae Nuea
+RF.BKL.01,rain,13.69867,100.506,Bang Kho Laem,Bang Kho Laem,Bang Kho Laem
+RF.BKL.02,rain,13.69867,100.506,Bang Kho Laem,Bang Kho Laem,Bang Kho Laem
+RF.BKM.01,rain,13.808,100.65,Bueng Kum,Bueng Kum,Khlong Kum
+RF.BKN.01,rain,13.7634,100.4728,Bangkok Noi,Bangkok Noi,Bang Khun Non
+RF.BKN.02,rain,13.7634,100.4728,Bangkok Noi,Bangkok Noi,Bang Khun Non
+RF.BKP.02,rain,13.771,100.6475,Bang Kapi,Bang Kapi,Khlong Chan
+RF.BKT.01,rain,13.58,100.4145,Bang Khun Thian,Bang Khun Thian,Tha Kham
+RF.BKT.02,rain,13.58,100.4145,Bang Khun Thian,Bang Khun Thian,Tha Kham
+RF.BKT.03,rain,13.58,100.4145,Bang Khun Thian,Bang Khun Thian,Tha Kham
+RF.BKT.04,rain,13.58,100.4145,Bang Khun Thian,Bang Khun Thian,Tha Kham
+RF.BKT.05,rain,13.58,100.4145,Bang Khun Thian,Bang Khun Thian,Tha Kham
+RF.BKY.01,rain,13.738,100.4805,Bangkok Yai,Bangkok Yai,Wat Tha Phra
+RF.BKY.02,rain,13.738,100.4805,Bangkok Yai,Bangkok Yai,Wat Tha Phra
+RF.BNA.01,rain,13.672,100.616,Bang Na,Bang Na,Bang Na
+RF.BNA.02,rain,13.672,100.616,Bang Na,Bang Na,Bang Na
+RF.BNA.03,rain,13.672,100.616,Bang Na,Bang Na,Bang Na
+RF.BPD.01,rain,13.787,100.49325,Bang Phlat,Bang Phlat,Bang Phlat
+RF.BRK.01,rain,13.728,100.5232,Bang Rak,Bang Rak,Si Phraya
+RF.BRK.02,rain,13.728,100.5232,Bang Rak,Bang Rak,Si Phraya
+RF.BSU.01,rain,13.82,100.529,Bang Sue,Bang Sue,Bang Sue
+RF.BSU.02,rain,13.82,100.529,Bang Sue,Bang Sue,Bang Sue
+RF.BSU.03,rain,13.82,100.529,Bang Sue,Bang Sue,Bang Sue
+RF.BSU.04,rain,13.82,100.529,Bang Sue,Bang Sue,Bang Sue
+RF.CTC.01,rain,13.826,100.565,Chatuchak,Chatuchak,Chatuchak
+RF.CTC.02,rain,13.826,100.565,Chatuchak,Chatuchak,Chatuchak
+RF.CTC.03,rain,13.826,100.565,Chatuchak,Chatuchak,Chatuchak
+RF.DDG.02,rain,13.778,100.567,Din Daeng,Din Daeng,Din Daeng
+RF.DMG.01,rain,13.925,100.593,Don Mueang,Don Mueang,Don Mueang
+RF.DST.01,rain,13.7728,100.5154,Dusit,Dusit,Dusit
+RF.DST.02,rain,13.7728,100.5154,Dusit,Dusit,Dusit
+RF.HKG.01,rain,13.77233,100.58067,Huai Khwang,Huai Khwang,Sam Sen Nok
+RF.HKG.02,rain,13.77233,100.58067,Huai Khwang,Huai Khwang,Sam Sen Nok
+RF.JTG.01,rain,13.69025,100.4655,Chom Thong,Chom Thong,Chom Thong
+RF.JTG.02,rain,13.69025,100.4655,Chom Thong,Chom Thong,Chom Thong
+RF.JTG.03,rain,13.69025,100.4655,Chom Thong,Chom Thong,Chom Thong
+RF.KSN.01,rain,13.7265,100.5025,Khlong San,Khlong San,Khlong Ton Sai
+RF.KSN.02,rain,13.7265,100.5025,Khlong San,Khlong San,Khlong Ton Sai
+RF.KSW.01,rain,13.8678,100.7398,Khlong Sam Wa,Khlong Sam Wa,Sam Wa Tawan Ok
+RF.KSW.02,rain,13.8678,100.7398,Khlong Sam Wa,Khlong Sam Wa,Sam Wa Tawan Ok
+RF.KSW.03,rain,13.8678,100.7398,Khlong Sam Wa,Khlong Sam Wa,Sam Wa Tawan Ok
+RF.KTY.01,rain,13.71333,100.57867,Khlong Toei,Khlong Toei,Phra Khanong
+RF.KTY.02,rain,13.71333,100.57867,Khlong Toei,Khlong Toei,Phra Khanong
+RF.KTY.03,rain,13.71333,100.57867,Khlong Toei,Khlong Toei,Phra Khanong
+RF.KTY.04,rain,13.71333,100.57867,Khlong Toei,Khlong Toei,Phra Khanong
+RF.KTY.05,rain,13.71333,100.57867,Khlong Toei,Khlong Toei,Phra Khanong
+RF.LKB.02,rain,13.743,100.78917,Lat Krabang,Lat Krabang,Lam Pla Thio
+RF.LKB.03,rain,13.743,100.78917,Lat Krabang,Lat Krabang,Lam Pla Thio
+RF.LKB.04,rain,13.69533,100.66967,Prawet,Prawet,Nong Bon
+RF.LPW.01,rain,13.8255,100.606,Lat Phrao,Lat Phrao,Chorakhe Bua
+RF.LSI.01,rain,13.877,100.572,Lak Si,Lak Si,Thung Song Hong
+RF.LSI.02,rain,13.877,100.572,Lak Si,Lak Si,Thung Song Hong
+RF.LSI.03,rain,13.877,100.572,Lak Si,Lak Si,Thung Song Hong
+RF.MBR.01,rain,13.808,100.7485,Min Buri,Min Buri,Saen Saep
+RF.MBR.02,rain,13.808,100.7485,Min Buri,Min Buri,Saen Saep
+RF.MBR.03,rain,13.808,100.7485,Min Buri,Min Buri,Saen Saep
+RF.MBR.05,rain,13.808,100.7485,Min Buri,Min Buri,Saen Saep
+RF.NJK.01,rain,13.85125,100.85612,Nong Chok,Nong Chok,Krathum Rai
+RF.NJK.02,rain,13.85125,100.85612,Nong Chok,Nong Chok,Krathum Rai
+RF.NJK.03,rain,13.85125,100.85612,Nong Chok,Nong Chok,Krathum Rai
+RF.NJK.04,rain,13.85125,100.85612,Nong Chok,Nong Chok,Krathum Rai
+RF.NJK.05,rain,13.85125,100.85612,Nong Chok,Nong Chok,Krathum Rai
+RF.NJK.06,rain,13.85125,100.85612,Nong Chok,Nong Chok,Krathum Rai
+RF.NJK.07,rain,13.85125,100.85612,Nong Chok,Nong Chok,Krathum Rai
+RF.NKM.01,rain,13.697,100.3545,Nong Khaem,Nong Khaem,Nong Khaem
+RF.NKM.02,rain,13.697,100.3545,Nong Khaem,Nong Khaem,Nong Khaem
+RF.NKM.03,rain,13.697,100.3545,Nong Khaem,Nong Khaem,Nong Khaem
+RF.PKN.01,rain,13.692,100.626,Phra Khanong,Phra Khanong,Bang Chak
+RF.PKN.02,rain,13.692,100.626,Phra Khanong,Phra Khanong,Bang Chak
+RF.PKN.03,rain,13.692,100.626,Phra Khanong,Phra Khanong,Bang Chak
+RF.PKN.04,rain,13.692,100.626,Phra Khanong,Phra Khanong,Bang Chak
+RF.PNK.01,rain,13.75642,100.49925,Phra Nakhon,Phra Nakhon,Bowon Niwet
+RF.PNK.02,rain,13.75642,100.49925,Phra Nakhon,Phra Nakhon,Bowon Niwet
+RF.PNK.03,rain,13.75642,100.49925,Phra Nakhon,Phra Nakhon,Bowon Niwet
+RF.PPS.01,rain,13.7512,100.5114,Pom Prap Sattru Phai,Pom Prap Sattru Phai,Khlong Mahanak
+RF.PSC.01,rain,13.72671,100.44557,Phasi Charoen,Phasi Charoen,Bang Duan
+RF.PSC.03,rain,13.72671,100.44557,Phasi Charoen,Phasi Charoen,Bang Duan
+RF.PSC.04,rain,13.72671,100.44557,Phasi Charoen,Phasi Charoen,Bang Duan
+RF.PSC.05,rain,13.72671,100.44557,Phasi Charoen,Phasi Charoen,Bang Duan
+RF.PTW.01,rain,13.7405,100.53175,Pathum Wan,Pathum Wan,Pathum Wan
+RF.PTW.02,rain,13.7405,100.53175,Pathum Wan,Pathum Wan,Pathum Wan
+RF.PWT.01,rain,13.69533,100.66967,Prawet,Prawet,Nong Bon
+RF.PWT.02,rain,13.69533,100.66967,Prawet,Prawet,Nong Bon
+RF.PWT.03,rain,13.69533,100.66967,Prawet,Prawet,Nong Bon
+RF.PYT.01,rain,13.782,100.545,Phaya Thai,Phaya Thai,Sam Sen Nai
+RF.PYT.02,rain,13.782,100.545,Phaya Thai,Phaya Thai,Sam Sen Nai
+RF.RBN.01,rain,13.6725,100.5005,Rat Burana,Rat Burana,Bang Pakok
+RF.RBN.02,rain,13.6725,100.5005,Rat Burana,Rat Burana,Bang Pakok
+RF.RTW.01,rain,13.756,100.53875,Ratchathewi,Ratchathewi,Thanon Phaya Thai
+RF.RTW.02,rain,13.756,100.53875,Ratchathewi,Ratchathewi,Thanon Phaya Thai
+RF.RTW.03,rain,13.756,100.53875,Ratchathewi,Ratchathewi,Thanon Phaya Thai
+RF.SLG.01,rain,13.726,100.628,Suan Luang,Suan Luang,Suan Luang
+RF.SLG.02,rain,13.726,100.628,Suan Luang,Suan Luang,Suan Luang
+RF.SMI.01,rain,13.905,100.652,Sai Mai,Sai Mai,Sai Mai
+RF.SMI.02,rain,13.905,100.652,Sai Mai,Sai Mai,Sai Mai
+RF.SMI.03,rain,13.905,100.652,Sai Mai,Sai Mai,Sai Mai
+RF.SMI.04,rain,13.905,100.652,Sai Mai,Sai Mai,Sai Mai
+RF.SPS.01,rain,13.761,100.688,Saphan Sung,Saphan Sung,Saphan Sung
+RF.SPS.02,rain,13.761,100.688,Saphan Sung,Saphan Sung,Saphan Sung
+RF.SPW.01,rain,13.738,100.50933,Samphanthawong,Samphanthawong,Samphanthawong
+RF.STN.01,rain,13.714,100.529,Sathon,Sathon,Yan Nawa
+RF.STN.02,rain,13.714,100.529,Sathon,Sathon,Yan Nawa
+RF.TBR.01,rain,13.722,100.4848,Thon Buri,Thon Buri,Bang Yi Ruea
+RF.TBR.02,rain,13.722,100.4848,Thon Buri,Thon Buri,Bang Yi Ruea
+RF.TBR.03,rain,13.722,100.4848,Thon Buri,Thon Buri,Bang Yi Ruea
+RF.TKU.01,rain,13.6325,100.5035,Thung Khru,Thung Khru,Thung Khru
+RF.TKU.02,rain,13.6325,100.5035,Thung Khru,Thung Khru,Thung Khru
+RF.TLC.01,rain,13.7675,100.43983,Taling Chan,Taling Chan,Bang Ramat
+RF.TLC.02,rain,13.7675,100.43983,Taling Chan,Taling Chan,Bang Ramat
+RF.TLC.03,rain,13.7675,100.43983,Taling Chan,Taling Chan,Bang Ramat
+RF.TWW.01,rain,13.7705,100.369,Thawi Watthana,Thawi Watthana,Sala Thammasop
+RF.TWW.02,rain,13.7705,100.369,Thawi Watthana,Thawi Watthana,Sala Thammasop
+RF.TWW.03,rain,13.7705,100.369,Thawi Watthana,Thawi Watthana,Sala Thammasop
+RF.TWW.04,rain,13.7705,100.369,Thawi Watthana,Thawi Watthana,Sala Thammasop
+RF.WTL.01,rain,13.779,100.609,Wang Thonglang,Wang Thonglang,Phlapphla
+RF.WTL.02,rain,13.779,100.609,Wang Thonglang,Wang Thonglang,Phlapphla
+RF.WTL.03,rain,13.779,100.609,Wang Thonglang,Wang Thonglang,Phlapphla
+RF.WTN.01,rain,13.73267,100.57733,Watthana,Vadhana,Khlong Tan Nuea
+RF.WTN.02,rain,13.73267,100.57733,Watthana,Vadhana,Khlong Tan Nuea
+RF.YNW.01,rain,13.6895,100.5385,Yan Nawa,Yan Nawa,Chong Nonsi
+RF.YNW.02,rain,13.6895,100.5385,Yan Nawa,Yan Nawa,Chong Nonsi
+RF.YNW.03,rain,13.6895,100.5385,Yan Nawa,Yan Nawa,Chong Nonsi
+WL.BBN.01,water,13.646,100.37,Bang Bon,Bang Bon,Bang Bon
+WL.BBN.02,water,13.646,100.37,Bang Bon,Bang Bon,Bang Bon
+WL.BBN.03,water,13.646,100.37,Bang Bon,Bang Bon,Bang Bon
+WL.BBR.01,water,13.781,100.482,Bang Phlat,Bang Phlat,Bang Bamru
+WL.BBR.02,water,13.781,100.482,Bang Phlat,Bang Phlat,Bang Bamru
+WL.BBU.01,water,13.867,100.628,Bang Khen,Bang Khen,Tha Raeng
+WL.BCN.01,water,13.751,100.419,Taling Chan,Taling Chan,Bang Chueak Nang
+WL.BCN.02,water,13.751,100.419,Taling Chan,Taling Chan,Bang Chueak Nang
+WL.BCN.03,water,13.751,100.419,Taling Chan,Taling Chan,Bang Chueak Nang
+WL.BJK.01,water,13.692,100.626,Phra Khanong,Phra Khanong,Bang Chak
+WL.BJK.02,water,13.692,100.626,Phra Khanong,Phra Khanong,Bang Chak
+WL.BJK.03,water,13.692,100.626,Phra Khanong,Phra Khanong,Bang Chak
+WL.BJK.04,water,13.692,100.626,Phra Khanong,Phra Khanong,Bang Chak
+WL.BKA.01,water,13.867,100.628,Bang Khen,Bang Khen,Tha Raeng
+WL.BKA.02,water,13.867,100.628,Bang Khen,Bang Khen,Tha Raeng
+WL.BKA.03,water,13.867,100.628,Bang Khen,Bang Khen,Tha Raeng
+WL.BKA.04,water,13.867,100.628,Bang Khen,Bang Khen,Tha Raeng
+WL.BKL.01,water,13.646,100.37,Bang Bon,Bang Bon,Bang Bon
+WL.BKT.01,water,13.808,100.65,Bueng Kum,Bueng Kum,Khlong Kum
+WL.BKY.01,water,13.738,100.4805,Bangkok Yai,Bangkok Yai,Wat Tha Phra
+WL.BKY.02,water,13.751,100.419,Taling Chan,Taling Chan,Bang Chueak Nang
+WL.BNA.01,water,13.672,100.616,Bang Na,Bang Na,Bang Na
+WL.BNA.02,water,13.672,100.616,Bang Na,Bang Na,Bang Na
+WL.BNA.03,water,13.672,100.616,Bang Na,Bang Na,Bang Na
+WL.BNA.04,water,13.672,100.616,Bang Na,Bang Na,Bang Na
+WL.BNJ.01,water,13.672,100.616,Bang Na,Bang Na,Bang Na
+WL.BNJ.02,water,13.672,100.616,Bang Na,Bang Na,Bang Na
+WL.BNJ.03,water,13.672,100.616,Bang Na,Bang Na,Bang Na
+WL.BNJ.04,water,13.672,100.616,Bang Na,Bang Na,Bang Na
+WL.BOA.01,water,13.802,100.512,Bang Phlat,Bang Phlat,Bang O
+WL.BOA.02,water,13.802,100.512,Bang Phlat,Bang Phlat,Bang O
+WL.BPK.01,water,13.6725,100.5005,Rat Burana,Rat Burana,Bang Pakok
+WL.BPM.01,water,13.752,100.442,Taling Chan,Taling Chan,Bang Phrom
+WL.BPM.02,water,13.752,100.442,Taling Chan,Taling Chan,Bang Phrom
+WL.BPM.03,water,13.752,100.442,Taling Chan,Taling Chan,Bang Phrom
+WL.BPM.04,water,13.752,100.442,Taling Chan,Taling Chan,Bang Phrom
+WL.BPN.01,water,13.646,100.37,Bang Bon,Bang Bon,Bang Bon
+WL.BPN.02,water,13.646,100.37,Bang Bon,Bang Bon,Bang Bon
+WL.BSU.01,water,13.82,100.529,Bang Sue,Bang Sue,Bang Sue
+WL.BSU.02,water,13.82,100.529,Bang Sue,Bang Sue,Bang Sue
+WL.BSU.03,water,13.82,100.529,Bang Sue,Bang Sue,Bang Sue
+WL.BSU.04,water,13.82,100.529,Bang Sue,Bang Sue,Bang Sue
+WL.BSU.05,water,13.82,100.529,Bang Sue,Bang Sue,Bang Sue
+WL.BSU.06,water,13.82,100.529,Bang Sue,Bang Sue,Bang Sue
+WL.BSU.07,water,13.82,100.529,Bang Sue,Bang Sue,Bang Sue
+WL.BWK.01,water,13.736,100.445,Phasi Charoen,Phasi Charoen,Bang Waek
+WL.BWK.02,water,13.736,100.445,Phasi Charoen,Phasi Charoen,Bang Waek
+WL.BWK.03,water,13.736,100.445,Phasi Charoen,Phasi Charoen,Bang Waek
+WL.BYK.01,water,13.774,100.492,Bang Phlat,Bang Phlat,Bang Yi Khan
+WL.BYK.02,water,13.774,100.492,Bang Phlat,Bang Phlat,Bang Yi Khan
+WL.CKS.02,water,13.8255,100.606,Lat Phrao,Lat Phrao,Chorakhe Bua
+WL.CNS.01,water,13.682,100.533,Yan Nawa,Yan Nawa,Bang Phongphang
+WL.CNS.02,water,13.682,100.533,Yan Nawa,Yan Nawa,Bang Phongphang
+WL.CNS.03,water,13.682,100.533,Yan Nawa,Yan Nawa,Bang Phongphang
+WL.CNS.04,water,13.682,100.533,Yan Nawa,Yan Nawa,Bang Phongphang
+WL.CPA.01,water,13.76,100.456,Taling Chan,Taling Chan,Khlong Chak Phra
+WL.CPA.02,water,13.76,100.456,Taling Chan,Taling Chan,Khlong Chak Phra
+WL.CYI.03,water,13.8255,100.606,Lat Phrao,Lat Phrao,Chorakhe Bua
+WL.FTM.01,water,13.778,100.567,Din Daeng,Din Daeng,Din Daeng
+WL.HKG.01,water,13.77233,100.58067,Huai Khwang,Huai Khwang,Sam Sen Nok
+WL.HKG.02,water,13.77233,100.58067,Huai Khwang,Huai Khwang,Sam Sen Nok
+WL.HMK.01,water,13.756,100.66,Bang Kapi,Bang Kapi,Hua Mak
+WL.HMK.02,water,13.756,100.66,Bang Kapi,Bang Kapi,Hua Mak
+WL.HMK.03,water,13.756,100.66,Bang Kapi,Bang Kapi,Hua Mak
+WL.KJN.01,water,13.786,100.635,Bang Kapi,Bang Kapi,Khlong Chan
+WL.KJN.02,water,13.786,100.635,Bang Kapi,Bang Kapi,Khlong Chan
+WL.KJT.01,water,13.8255,100.606,Lat Phrao,Lat Phrao,Chorakhe Bua
+WL.KKY.01,water,13.7705,100.369,Thawi Watthana,Thawi Watthana,Sala Thammasop
+WL.KKY.02,water,13.7705,100.369,Thawi Watthana,Thawi Watthana,Sala Thammasop
+WL.KLT.01,water,13.723,100.571,Khlong Toei,Khlong Toei,Khlong Tan
+WL.KNB.01,water,13.687,100.656,Prawet,Prawet,Nong Bon
+WL.KNB.02,water,13.687,100.656,Prawet,Prawet,Nong Bon
+WL.KSO.01,water,13.7705,100.369,Thawi Watthana,Thawi Watthana,Sala Thammasop
+WL.KSO.02,water,13.7705,100.369,Thawi Watthana,Thawi Watthana,Sala Thammasop
+WL.KTY.01,water,13.71333,100.57867,Khlong Toei,Khlong Toei,Phra Khanong
+WL.LKB.01,water,13.723,100.771,Lat Krabang,Lat Krabang,Lat Krabang
+WL.LPC.01,water,13.797,100.844,Nong Chok,Nong Chok,Lam Phak Chi
+WL.LPT.01,water,13.765,100.817,Lat Krabang,Lat Krabang,Lam Pla Thio
+WL.LPT.02,water,13.765,100.817,Lat Krabang,Lat Krabang,Lam Pla Thio
+WL.LPT.03,water,13.765,100.817,Lat Krabang,Lat Krabang,Lam Pla Thio
+WL.LPT.04,water,13.765,100.817,Lat Krabang,Lat Krabang,Lam Pla Thio
+WL.LPW.01,water,13.8255,100.606,Lat Phrao,Lat Phrao,Chorakhe Bua
+WL.LPW.02,water,13.8255,100.606,Lat Phrao,Lat Phrao,Chorakhe Bua
+WL.LPW.03,water,13.8255,100.606,Lat Phrao,Lat Phrao,Chorakhe Bua
+WL.LPW.04,water,13.8255,100.606,Lat Phrao,Lat Phrao,Chorakhe Bua
+WL.LPW.05,water,13.8255,100.606,Lat Phrao,Lat Phrao,Chorakhe Bua
+WL.LSG.01,water,13.672,100.616,Bang Na,Bang Na,Bang Na
+WL.LSM.01,water,13.672,100.616,Bang Na,Bang Na,Bang Na
+WL.LYW.01,water,13.826,100.565,Chatuchak,Chatuchak,Chatuchak
+WL.LYW.02,water,13.826,100.565,Chatuchak,Chatuchak,Chatuchak
+WL.NKW.02,water,13.8255,100.606,Lat Phrao,Lat Phrao,Chorakhe Bua
+WL.PKG.01,water,13.75642,100.49925,Phra Nakhon,Phra Nakhon,Bowon Niwet
+WL.PKN.01,water,13.692,100.626,Phra Khanong,Phra Khanong,Bang Chak
+WL.PSC.01,water,13.72671,100.44557,Phasi Charoen,Phasi Charoen,Bang Duan
+WL.PSC.02,water,13.72671,100.44557,Phasi Charoen,Phasi Charoen,Bang Duan
+WL.PSC.03,water,13.72671,100.44557,Phasi Charoen,Phasi Charoen,Bang Duan
+WL.PSC.04,water,13.72671,100.44557,Phasi Charoen,Phasi Charoen,Bang Duan
+WL.PSC.05,water,13.72671,100.44557,Phasi Charoen,Phasi Charoen,Bang Duan
+WL.PSR.01,water,13.8678,100.7398,Khlong Sam Wa,Khlong Sam Wa,Sam Wa Tawan Ok
+WL.PSR.02,water,13.8678,100.7398,Khlong Sam Wa,Khlong Sam Wa,Sam Wa Tawan Ok
+WL.PSR.03,water,13.8678,100.7398,Khlong Sam Wa,Khlong Sam Wa,Sam Wa Tawan Ok
+WL.PSR.04,water,13.8678,100.7398,Khlong Sam Wa,Khlong Sam Wa,Sam Wa Tawan Ok
+WL.PSR.05,water,13.8678,100.7398,Khlong Sam Wa,Khlong Sam Wa,Sam Wa Tawan Ok
+WL.PSR.06,water,13.8678,100.7398,Khlong Sam Wa,Khlong Sam Wa,Sam Wa Tawan Ok
+WL.PST.01,water,13.82,100.529,Bang Sue,Bang Sue,Bang Sue
+WL.PWT.01,water,13.69533,100.66967,Prawet,Prawet,Nong Bon
+WL.PWT.02,water,13.69533,100.66967,Prawet,Prawet,Nong Bon
+WL.PWT.03,water,13.69533,100.66967,Prawet,Prawet,Nong Bon
+WL.PWT.04,water,13.69533,100.66967,Prawet,Prawet,Nong Bon
+WL.PWT.05,water,13.69533,100.66967,Prawet,Prawet,Nong Bon
+WL.PWT.06,water,13.69533,100.66967,Prawet,Prawet,Nong Bon
+WL.PWT.07,water,13.69533,100.66967,Prawet,Prawet,Nong Bon
+WL.SNC.02,water,13.58,100.4145,Bang Khun Thian,Bang Khun Thian,Tha Kham
+WL.SSB.01,water,13.812,100.774,Min Buri,Min Buri,Saen Saep
+WL.SSB.02,water,13.812,100.774,Min Buri,Min Buri,Saen Saep
+WL.SSB.03,water,13.812,100.774,Min Buri,Min Buri,Saen Saep
+WL.SSB.05,water,13.812,100.774,Min Buri,Min Buri,Saen Saep
+WL.SSB.06,water,13.812,100.774,Min Buri,Min Buri,Saen Saep
+WL.SSB.07,water,13.812,100.774,Min Buri,Min Buri,Saen Saep
+WL.SSB.08,water,13.812,100.774,Min Buri,Min Buri,Saen Saep
+WL.SSB.09,water,13.812,100.774,Min Buri,Min Buri,Saen Saep
+WL.SSB.10,water,13.812,100.774,Min Buri,Min Buri,Saen Saep
+WL.SSB.11,water,13.812,100.774,Min Buri,Min Buri,Saen Saep
+WL.SSB.12,water,13.812,100.774,Min Buri,Min Buri,Saen Saep
+WL.SSG.01,water,13.914,100.88,Nong Chok,Nong Chok,Khlong Sip Song
+WL.SSN.06,water,13.778,100.567,Din Daeng,Din Daeng,Din Daeng
+WL.SSN.08,water,13.812,100.774,Min Buri,Min Buri,Saen Saep
+WL.STN.01,water,13.753,100.723,Lat Krabang,Lat Krabang,Khlong Song Ton Nun
+WL.STN.02,water,13.753,100.723,Lat Krabang,Lat Krabang,Khlong Song Ton Nun
+WL.STN.03,water,13.753,100.723,Lat Krabang,Lat Krabang,Khlong Song Ton Nun
+WL.STR.01,water,13.714,100.529,Sathon,Sathon,Yan Nawa
+WL.STR.02,water,13.714,100.529,Sathon,Sathon,Yan Nawa
+WL.SWA.01,water,13.8678,100.7398,Khlong Sam Wa,Khlong Sam Wa,Sam Wa Tawan Ok
+WL.TNG.01,water,13.8255,100.606,Lat Phrao,Lat Phrao,Chorakhe Bua
+WL.TPK.02,water,13.743,100.78917,Lat Krabang,Lat Krabang,Lam Pla Thio
+WL.TWW.01,water,13.7705,100.369,Thawi Watthana,Thawi Watthana,Sala Thammasop
+WL.TWW.02,water,13.7705,100.369,Thawi Watthana,Thawi Watthana,Sala Thammasop
+WL.TWW.03,water,13.7705,100.369,Thawi Watthana,Thawi Watthana,Sala Thammasop
+WL.TWW.04,water,13.7705,100.369,Thawi Watthana,Thawi Watthana,Sala Thammasop
+WL.TWW.05,water,13.7705,100.369,Thawi Watthana,Thawi Watthana,Sala Thammasop
+WL.WLS.01,water,13.877,100.572,Lak Si,Lak Si,Thung Song Hong
+WL.WTK.01,water,13.8255,100.606,Lat Phrao,Lat Phrao,Chorakhe Bua
+WL.WTN.02,water,13.73267,100.57733,Watthana,Vadhana,Khlong Tan Nuea
+WL.YPN.02,water,13.8255,100.606,Lat Phrao,Lat Phrao,Chorakhe Bua
+FW.BBU.01,flow,13.867,100.628,Bang Khen,Bang Khen,Tha Raeng
+FW.BKA.02,flow,13.867,100.628,Bang Khen,Bang Khen,Tha Raeng
+FW.BSU.01,flow,13.82,100.529,Bang Sue,Bang Sue,Bang Sue
+FW.K2W.01,flow,13.905,100.652,Sai Mai,Sai Mai,Sai Mai
+FW.K3W.01,flow,13.8678,100.7398,Khlong Sam Wa,Khlong Sam Wa,Sam Wa Tawan Ok
+FW.K4W.01,flow,13.8678,100.7398,Khlong Sam Wa,Khlong Sam Wa,Sam Wa Tawan Ok
+FW.KKY.01,flow,13.7705,100.369,Thawi Watthana,Thawi Watthana,Sala Thammasop
+FW.KNG.01,flow,13.905,100.652,Sai Mai,Sai Mai,Sai Mai
+FW.KSO.01,flow,13.7705,100.369,Thawi Watthana,Thawi Watthana,Sala Thammasop
+FW.KSW.01,flow,13.8678,100.7398,Khlong Sam Wa,Khlong Sam Wa,Sam Wa Tawan Ok
+FW.LKB.01,flow,13.743,100.78917,Lat Krabang,Lat Krabang,Lam Pla Thio
+FW.LMT.01,flow,13.905,100.652,Sai Mai,Sai Mai,Sai Mai
+FW.LPW.01,flow,13.8255,100.606,Lat Phrao,Lat Phrao,Chorakhe Bua
+FW.PKG.01,flow,13.75642,100.49925,Phra Nakhon,Phra Nakhon,Bowon Niwet
+FW.PSC.01,flow,13.72671,100.44557,Phasi Charoen,Phasi Charoen,Bang Duan
+FW.PSR.01,flow,13.8678,100.7398,Khlong Sam Wa,Khlong Sam Wa,Sam Wa Tawan Ok
+FW.PWT.01,flow,13.69533,100.66967,Prawet,Prawet,Nong Bon
+FW.SSB.01,flow,13.812,100.774,Min Buri,Min Buri,Saen Saep
+FW.SSB.02,flow,13.812,100.774,Min Buri,Min Buri,Saen Saep
+FW.SSB.03,flow,13.808,100.7485,Min Buri,Min Buri,Saen Saep
+FW.TWW.01,flow,13.7705,100.369,Thawi Watthana,Thawi Watthana,Sala Thammasop

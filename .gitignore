@@ -1,47 +1,79 @@
-# ─── Bangkok Flood Forecast — what NOT to commit ────────────────────────────
-# Rule: push code, docs, and small model artifacts. Never push raw/large data.
-# GitHub rejects files >100 MB; the data is regenerable from the pipeline.
+# ─── Bangkok Flood Forecast v3.0 — what NOT to commit ──────────────────────
+# Rule: commit code, configuration, docs and small artefacts.
+# Never commit raw or derived data — it is large and it is regenerable by
+# running notebooks 00 → 02.
 
-# ── Large data (GBs) — regenerate with data_pipeline/ ──
-data/training/*.parquet
-data/training/*.csv
-data/parquet/**/*.parquet
-data/*.csv.gz
+# ── Raw sensor archive (54.8 GB, supplied by BMA) ──
+data/Rain_2019-*/
+data/Water_2019-*/
+data/Flow_2019-*/
+data/Flood_2019-*/
 
-# keep the small, hand-built data files (force-tracked below)
-!data/station_registry_full.csv
-!data/parquet/quality_scorecard.csv
+# ── Derived data (rebuild with the notebooks) ──
+data/interim/
+data/features/
+data/external/
+data/parquet/
+data/training/
+*.parquet
 
-# ── GIS rasters & boundaries (100s of MB, some >100 MB) ──
-data/*.tif
+# ── GIS rasters (13.9 GB DTM; several files exceed GitHub's 100 MB limit) ──
+data/DTM_1M/
 data/viz/
-data/*.tar.gz
-data/*.gdb/
-data/*.shp/
+data/tha_admin_boundaries.gdb/
+data/tha_admin_boundaries.shp/
 *.tif
+*.tif.ovr
 *.tar.gz
+*.shp
+*.shx
+*.dbf
+*.prj
+*.cpg
+
+# ── Small, hand-built or contract files that everything depends on: KEEP ──
+!data/gis/*.geojson
+!data/gis/*.csv
+!data/station_registry_full.csv
+!docs/reports/**/*.csv
+!docs/reports/**/*.json
+
+# ── Models ──
+models/*.pkl
+models/*.pt
+models/*.txt
+!models/metadata.json
 
 # ── Python ──
 __pycache__/
-*.pyc
-*.pyo
-.ipynb_checkpoints/
+*.py[cod]
 .venv/
 venv/
+.pytest_cache/
+.ipynb_checkpoints/
 *.egg-info/
+.coverage
 
-# ── Caches & scratch ──
-data_pipeline/.osm_cache.json
-data/training/Untitled-*.ipynb
-data/training/val_sample.csv
+# ── Node / frontend ──
+node_modules/
+frontend/dist/
+frontend/.vite/
 
-# ── OS / editor ──
-.DS_Store
-*~
-.vscode/
-.idea/
-
-# ── Secrets (never commit) ──
-*.env
+# ── Local environment ──
 .env
-*.key
+.env.*
+!.env.example
+
+# ── OS ──
+.DS_Store
+Thumbs.db
+
+# ── Scratch ──
+scratch/
+tmp/
+*.log
+
+# Live collector history. This is DATA, and it is append-only and
+# irreplaceable — none of the source APIs publish a downloadable past.
+# Back it up separately; losing it means losing time, not just bytes.
+data/live/

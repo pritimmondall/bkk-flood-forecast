@@ -1,0 +1,4 @@
+dataset,own_prefixes,covers_flood_districts,of_total,pct,cannot_reach
+rain,51,33,33,100.0,(none)
+water,163,13,33,39.4,"BKE, BKM, BKN, BKP, BRK, DDG, DST, JTG, KSN, LSI, MBR, PNK, PPS, PTW, PYT, RTW, SLG, SMI, SPW, WTL"
+flow,27,3,33,9.1,"BBN, BKE, BKL, BKM, BKN, BKP, BKT, BNA, BRK, CTC, DDG, DST, HKG, JTG, KSN, KTY, LSI, MBR, PKN, PNK, PPS, PTW, PYT, RTW, SLG, SMI, SPW, STN, WTL, WTN"

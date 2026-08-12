@@ -1,0 +1,8 @@
+missing,priority,why_it_matters,how_to_get_it
+Radar rainfall (TMD),1,Our rain is a district average; Bangkok floods from 2-5 km cells. Rainfall carries ~76% of the forecasting signal.,Registration with TMD
+Station coordinates + datum,2,Turns canal level and flow from citywide averages into local features; makes the map real; makes the depth formula computable.,Likely an existing asset register
+Canal network topology,3,"Which canal drains into which. Unlocks upstream features and, later, graph models.",BMA Drainage GIS export
+Pump and gate operation logs,4,The drainage system has an operator. A model blind to pump state is predicting a system while ignoring its controller.,SCADA extraction
+Measured Chao Phraya tide,5,High tide holds the drainage gates shut. We can reconstruct tidal phase from lunar periods but not height.,Hydrographic Dept / RID
+Independent flood reports,6,"Labels are sensor-only: a flood where there is no sensor never happened, as far as model and evaluation are concerned.",Traffy Fondue archive (NECTEC)
+2026 sensor data,7,The 2025 holdout has already been used. A fresh year restores a genuinely sealed test.,File transfer

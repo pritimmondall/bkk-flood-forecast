@@ -1,0 +1,5 @@
+district,valid_pct,elev_p50,elev_p99,elev_max,median_step_cm,p99_step_cm
+Pathum Wan,100.0,4.41,4.96,4.99,1.9,47.9
+Bang Rak,100.0,4.68,4.97,4.99,1.3,71.3
+Nong Chok,100.0,1.82,3.0,4.11,1.6,35.1
+Lat Krabang,100.0,0.71,1.65,3.0,1.4,31.3

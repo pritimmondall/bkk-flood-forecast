@@ -1,0 +1,4 @@
+source,district_days,corr_with_flood,mean_mm_flood_days,mean_mm_other_days,ratio
+bma_mm,125195,0.2982,50.18,3.69,13.6
+forecast_mm,122638,0.024,2.96,1.36,2.2
+era5_mm,87598,0.0846,13.65,4.47,3.0

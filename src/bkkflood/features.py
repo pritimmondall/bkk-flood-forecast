@@ -1,507 +1,828 @@
-"""Turning clean sensor data into model inputs, without leaking the future.
+"""
+Building the model-ready feature table.
 
-The one rule
-------------
-A feature at time *t* may only use data recorded at or before *t*. Every
-rolling window here is trailing. Every lag is backwards. If you add a feature,
-check it against this rule first — a leak produces a beautiful validation score
-and a model that fails the moment it meets real time.
+--------------------------------------------------------------------------
+THE ONE RULE
+--------------------------------------------------------------------------
+Every feature here uses only `(-inf, t]`. Nothing looks forward. Labels live in
+`labels.py` and use `(t, t+h]`. If those windows ever touch, scores rise 20-30
+points for a reason that has nothing to do with forecasting, and nothing in the
+output looks wrong.
 
-What we build, and why
-----------------------
-**Flood autoregressive** (`fl_*`) — where the water is right now and where it
-has been. These dominate the short horizon and they should: if a road is
-already 20 cm deep, the best guess for an hour from now is "still deep". The
-danger is that a model leans on them so hard it never learns anything else,
-which is exactly what happened in v1. The onset models in
-`notebooks/05` exist to break that habit.
+--------------------------------------------------------------------------
+WHAT IS LOCAL AND WHAT IS NOT, AND WHY IT IS NOT OUR CHOICE
+--------------------------------------------------------------------------
+    flood       per station          the sensor's own history
+    rain        per district         rain codes share a district prefix with
+                                     flood codes -- covers 33/33 flood districts
+    water       CITYWIDE             canal codes are canal names, not districts.
+    flow        CITYWIDE             Only 13/33 and 3/33 districts are reachable,
+                                     so a local join is impossible until BMA
+                                     supplies coordinates. This is the single
+                                     biggest avoidable weakness in the feature
+                                     set and it is a spreadsheet away from fixed.
+    terrain     per district         no station coordinates, same reason
+    forecast    per district-ish     GFS is ~13 km; Bangkok is ~40 km across, so
+                                     neighbouring districts share grid cells
 
-**Rain** (`rain_*`) — joined by district code prefix. Rain station codes and
-flood station codes share a district prefix, and that prefix covers 100% of
-flood districts (verified). This is the only real spatial join available until
-station coordinates arrive.
+Anything citywide tells the model that the network as a whole is under stress,
+never which canal is failing next to which road.
 
-*The known weakness*: this is a district **average**. Bangkok floods from
-small, intense convective cells that can dump 40 mm on one sub-district and
-nothing two kilometres away. Averaging over a district smears exactly the
-signal we need. Radar rainfall is the single highest-value missing input.
-
-**Water and flow** (`water_*`, `flow_*`) — citywide aggregates only. Their
-station codes are canal-based, not district-based, so they cannot be joined to
-a flood station without coordinates. Aggregates still carry real information
-("the canal network as a whole is rising") but they are blunt.
-
-**Forecast rain** (`rain_fcst_*`) — rainfall that has not fallen yet, from a
-weather model. Measured to be about three times more predictive of a 6-hour
-flood than past rain, which stands to reason: past rain cannot tell you about a
-storm that has not arrived. Optional; joined if the file exists.
-
-**Terrain** (`elev_m`, `slope_deg`, ...) — from the digital elevation model.
-Tested weak so far, because 31 m SRTM cannot see a street-level dip and the
-station identity already encodes most of it. Kept because LiDAR would make
-them work.
-
-**Calendar and tide** (`cal_*`, `tide_*`) — hour of day, day of year, monsoon
-flag, and a tidal phase proxy. The Chao Phraya is tidal, and a high tide holds
-the drainage gates shut, so heavy rain at high tide floods when the same rain
-at low tide drains away. We have no tide gauge, so we reconstruct the phase
-from the known lunar periods. It costs nothing and it is real physics.
+--------------------------------------------------------------------------
+NaN IS INFORMATION
+--------------------------------------------------------------------------
+Missing readings reach 10.7% (flood) and 15.9% (flow) by 2025 and the rate
+triples after 2022. A missing reading is not a dry road, so nothing is filled.
+LightGBM handles NaN natively; sequence models get an explicit indicator. The
+`*_offline_share` features exist so the model can tell "no flood" from
+"no sensor" — without them it would learn that certain stations stopped flooding
+in 2023.
 """
 
 from __future__ import annotations
 
-import warnings
-from pathlib import Path
-from typing import Callable, Iterable
+import math
+from typing import Dict, Iterable, List, Optional, Sequence
 
 import numpy as np
 import pandas as pd
-import pyarrow.parquet as pq
 
-from .config import CFG, PATHS, steps_per_hour, anchor_stride, tier_values
-from .labels import future_window_labels, onset_mask
+from .config import load_config, resolve
+from .rawio import connect, interim_sql
+from .stations import district_prefix
+from .evaluate import pr_auc
 
-STEPS_1H = steps_per_hour()          # 12 readings per hour at 5-minute cadence
+# Lunar periods, for reconstructing tidal phase. Real physics, and free -- but
+# it gives PHASE, not HEIGHT. A spring tide during a storm surge is a completely
+# different situation from a neap tide, and these terms cannot tell them apart.
+# A measured Chao Phraya tide gauge is request #5 on the BMA list.
+M2_HOURS = 12.4206012          # principal lunar semi-diurnal
+SYNODIC_DAYS = 29.530588       # new moon to new moon: the spring-neap cycle
 
 
-# ===========================================================================
-# Low-level array helpers
-# ===========================================================================
+# ---------------------------------------------------------------------------
+# Flood autoregressive — the station's own recent history
+# ---------------------------------------------------------------------------
+def flood_features(years: Optional[Iterable[int]] = None, con=None) -> pd.DataFrame:
+    """Per-station rolling history of depth, at the modelling cadence.
 
-def trailing(x: np.ndarray, window_steps: int, fn: Callable) -> np.ndarray:
-    """Rolling statistic over the last `window_steps` readings, including now.
-
-    Trailing, never centred, never forward — that is what makes it leak-free.
-    The first few positions are padded with NaN because there is no history yet.
+    `fl_std_3h` is the one to watch. In the previous version's 15 cm / 1 h model
+    it carried 68.9% of the gain, against 1.6% for the current depth level.
+    Recent *variability* predicts flooding better than the level does -- which is
+    the difference between a forecaster and a monitor, and the strongest single
+    argument that this feature set is looking at the right thing.
     """
-    w = max(1, int(window_steps))
-    padded = np.concatenate([np.full(w - 1, np.nan), np.asarray(x, dtype=float)])
-    windows = np.lib.stride_tricks.sliding_window_view(padded, w)
-    with np.errstate(all="ignore"), warnings.catch_warnings():
-        warnings.simplefilter("ignore", category=RuntimeWarning)
-        return fn(windows, axis=1)
+    owns = con is None
+    con = con or connect()
+    try:
+        return con.execute(_flood_sql(years)).fetchdf()
+    finally:
+        if owns:
+            con.close()
 
 
-def lag(x: np.ndarray, steps: int) -> np.ndarray:
-    """Value from `steps` readings ago; NaN where there is no history."""
-    s = max(0, int(steps))
-    x = np.asarray(x, dtype=float)
-    return np.concatenate([np.full(s, np.nan), x[:len(x) - s]]) if s else x.copy()
+def _flood_sql(years: Optional[Iterable[int]] = None) -> str:
+    """Backward windows, all of them TIME-based rather than row-based.
 
+    HOW MUCH DIFFERENCE THIS MAKES, MEASURED: none. Over all 10,408,947 flood
+    readings in 2022, `ROWS BETWEEN 36 PRECEDING` and `RANGE BETWEEN INTERVAL
+    '3 hours' PRECEDING` give an identical answer on every single row.
 
-def hours_since_above(x: np.ndarray, threshold: float,
-                      cap_hours: float = 72.0) -> np.ndarray:
-    """How long since this series was last at or above `threshold`.
+    That was not the expectation. The reasoning for switching was that 2.9% of
+    readings are missing in 2022 and 10.7% by 2025, so a 36-row window would
+    stretch past three hours wherever there was a gap. It does not, because the
+    missing readings are NULL *values* in rows that exist -- the timestamp grid
+    is complete and unbroken. There are no missing rows to skip over.
 
-    Capped, so "never in living memory" and "not for four days" look the same
-    to the model instead of producing a meaningless huge number. Missing values
-    are treated as 'not above'.
+    The time-based form is kept anyway, and the reason is worth being clear
+    about: it is correct by construction rather than correct by luck. `ROWS`
+    silently depends on an invariant -- a complete 5-minute grid -- that nothing
+    in the pipeline enforces and that a future re-ingest could quietly break.
+    `RANGE` asks for three hours and gets three hours. It costs roughly 40
+    seconds per year to build instead of 10.
+
+    (The 28 disagreements that prompted all this turned out to be the *check*
+    using `> t-3h` where the window uses `>= t-3h`. The feature was right. That
+    is now the fourth time in this project that a check, not the data, was the
+    thing that was broken.)
     """
-    x = np.nan_to_num(np.asarray(x, dtype=float), nan=-np.inf)
-    cap_steps = cap_hours * STEPS_1H
-    out = np.empty(len(x))
-    last = -np.inf
-    for i, v in enumerate(x):
-        if v >= threshold:
-            last = i
-        out[i] = min(i - last, cap_steps)
-    return out / STEPS_1H
+    cfg = load_config()
+    cadence = cfg["data"]["cadence_minutes"]
+    step = cfg["data"]["model_cadence_minutes"]
+    expected_3h = 3 * 60 // cadence + 1
+    src = interim_sql("flood", years)
+    w = "PARTITION BY station_code ORDER BY ts"
+
+    def back(interval):
+        return f"{w} RANGE BETWEEN INTERVAL '{interval}' PRECEDING AND CURRENT ROW"
+
+    def at(interval):
+        # Zero-width range: exactly the reading that far back, or NULL if that
+        # particular reading is missing. A lag by row count would silently
+        # return whatever the previous surviving reading happened to be.
+        return (f"{w} RANGE BETWEEN INTERVAL '{interval}' PRECEDING "
+                f"AND INTERVAL '{interval}' PRECEDING")
+
+    return f"""
+        WITH base AS (
+            SELECT station_code, ts, flood,
+                   max(flood) OVER ({at(f'{step} minutes')}) AS fl_prev_step,
+                   max(flood) OVER ({at('1 hour')})  AS fl_depth_lag_1h,
+                   max(flood) OVER ({at('3 hours')}) AS fl_depth_lag_3h,
+                   max(flood) OVER ({back('3 hours')})  AS fl_max_3h,
+                   max(flood) OVER ({back('24 hours')}) AS fl_max_24h,
+                   avg(flood) OVER ({back('1 hour')})   AS fl_mean_1h,
+                   stddev_samp(flood) OVER ({back('3 hours')}) AS fl_std_3h,
+                   count(flood) OVER ({back('3 hours')})::DOUBLE
+                       / {expected_3h} AS fl_obs_share_3h,
+                   -- Time since the station was last wet. `last_value ... IGNORE
+                   -- NULLS` over the trailing window carries the most recent
+                   -- crossing forward; NULL means "not in living memory".
+                   last_value(CASE WHEN flood >= 5  THEN ts END IGNORE NULLS)
+                       OVER ({w} ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS fl_last_5cm,
+                   last_value(CASE WHEN flood >= 15 THEN ts END IGNORE NULLS)
+                       OVER ({w} ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS fl_last_15cm
+            FROM {src}
+        )
+        SELECT station_code, ts,
+               flood                          AS fl_depth_now,
+               fl_depth_lag_1h, fl_depth_lag_3h,
+               flood - fl_prev_step           AS fl_rise_15min,
+               flood - fl_depth_lag_1h        AS fl_rise_1h,
+               fl_max_3h, fl_max_24h, fl_mean_1h, fl_std_3h,
+               least(1.0, 1.0 - fl_obs_share_3h) AS fl_missing_share_3h,
+               date_diff('minute', fl_last_5cm,  ts) / 60.0 AS fl_hours_since_5cm,
+               date_diff('minute', fl_last_15cm, ts) / 60.0 AS fl_hours_since_15cm
+        FROM base
+        WHERE date_part('minute', ts)::INT % {step} = 0
+        """
 
 
-# ===========================================================================
-# Flood station features (per station, chronological)
-# ===========================================================================
+# ---------------------------------------------------------------------------
+# Rain — the only input that can be joined locally
+# ---------------------------------------------------------------------------
+def rain_features(years: Optional[Iterable[int]] = None, con=None) -> pd.DataFrame:
+    """Rainfall aggregated per district per 15 minutes.
 
-def flood_features(depth: np.ndarray) -> dict[str, np.ndarray]:
-    """Autoregressive features from one station's depth series (centimetres)."""
-    d = np.asarray(depth, dtype=float)
-    return {
-        "fl_depth_now": d,
-        "fl_depth_lag1h": lag(d, STEPS_1H),
-        "fl_depth_lag3h": lag(d, 3 * STEPS_1H),
-        # Rate of change: is the water climbing or draining right now?
-        "fl_rise_15min": d - lag(d, 3),
-        "fl_rise_1h": d - lag(d, STEPS_1H),
-        "fl_max3h": trailing(d, 3 * STEPS_1H, np.nanmax),
-        "fl_max24h": trailing(d, 24 * STEPS_1H, np.nanmax),
-        "fl_mean1h": trailing(d, STEPS_1H, np.nanmean),
-        "fl_std3h": trailing(d, 3 * STEPS_1H, np.nanstd),
-        "fl_hrs_since_5cm": hours_since_above(d, 5.0, cap_hours=72.0),
-        "fl_hrs_since_15cm": hours_since_above(d, 15.0, cap_hours=168.0),
-        # A missing reading is itself informative: sensors often drop out
-        # during the worst weather, so an outage is weak evidence of trouble.
-        "fl_missing_share3h": trailing(np.isnan(d).astype(float),
-                                       3 * STEPS_1H, np.nanmean),
-    }
-
-
-# ===========================================================================
-# Rain features (district prefix join)
-# ===========================================================================
-
-def rain_district_features(year: int, parquet_dir: Path | None = None) -> pd.DataFrame:
-    """Rain aggregates per (district prefix, timestamp).
-
-    Station codes look like `RN.BKN.02`; the middle token is the district. Flood
-    codes use the same scheme, so the prefix is our spatial join.
+    `rain_spread` (max minus mean across the gauges in a district) is the closest
+    thing available to a measure of how localised the rain is. It is a poor
+    substitute for radar: one gauge per ~12 km2 against cells 2-5 km across, so
+    the average smooths away the peak that causes the flood. That gap is the
+    single biggest expected accuracy gain in the project.
     """
-    parquet_dir = Path(parquet_dir) if parquet_dir else PATHS.parquet
-    cols = ["station_code", "site_timestamp", "rf1hr", "rf3hr", "rf6hr", "rf24hr"]
-    r = pq.read_table(parquet_dir / "rain" / f"{year}.parquet", columns=cols).to_pandas()
-    r["station_code"] = r["station_code"].astype(str)
-    r["prefix"] = r["station_code"].str.split(".").str[1]
-
-    g = (r.groupby(["prefix", "site_timestamp"], observed=True)
-           .agg(rain_rf1hr_mean=("rf1hr", "mean"),
-                rain_rf1hr_max=("rf1hr", "max"),      # the wettest gauge, not the average
-                rain_rf3hr_mean=("rf3hr", "mean"),
-                rain_rf3hr_max=("rf3hr", "max"),
-                rain_rf6hr_mean=("rf6hr", "mean"),
-                rain_rf24hr_mean=("rf24hr", "mean"),
-                rain_gauges_reporting=("rf1hr", "count"))
-           .reset_index()
-           .sort_values(["prefix", "site_timestamp"]))
-
-    grp = g.groupby("prefix", observed=True)
-    # Is the rain intensifying or easing off? Intensification precedes flooding.
-    g["rain_rf1hr_delta1h"] = grp["rain_rf1hr_mean"].diff(STEPS_1H)
-    g["rain_rf1hr_delta3h"] = grp["rain_rf1hr_mean"].diff(3 * STEPS_1H)
-    # Spread across gauges: high spread means a localised cell, which is
-    # precisely when a district average understates the peak.
-    g["rain_spread"] = g["rain_rf1hr_max"] - g["rain_rf1hr_mean"]
-    # Antecedent wetness: ground already saturated drains far more slowly.
-    g["rain_antecedent_ratio"] = g["rain_rf1hr_mean"] / (g["rain_rf24hr_mean"] + 1.0)
-    return g
+    owns = con is None
+    con = con or connect()
+    try:
+        return con.execute(_rain_sql(years)).fetchdf()
+    finally:
+        if owns:
+            con.close()
 
 
-# ===========================================================================
-# Water and flow features (citywide, until coordinates arrive)
-# ===========================================================================
-
-def water_city_features(year: int, parquet_dir: Path | None = None) -> pd.DataFrame:
-    """Canal water-level indicators for the whole network, per timestamp.
-
-    We use *changes*, not absolute levels, because the datum of `wl_in` has
-    never been confirmed with BMA. A rise of 8 cm in an hour means the same
-    thing whether the gauge reads from mean sea level or from the canal bed.
+def _rain_sql(years: Optional[Iterable[int]] = None) -> str:
+    cfg = load_config()
+    step = cfg["data"]["model_cadence_minutes"]
+    per_step = 60 // step
+    src = interim_sql("rain", years)
+    w = "PARTITION BY district_code ORDER BY ts"
+    return f"""
+    WITH d AS (
+        SELECT split_part(station_code, '.', 2) AS district_code, ts,
+               avg(rf1hr)  AS rain_rf1hr_mean,  max(rf1hr)  AS rain_rf1hr_max,
+               avg(rf3hr)  AS rain_rf3hr_mean,  max(rf3hr)  AS rain_rf3hr_max,
+               avg(rf6hr)  AS rain_rf6hr_mean,
+               avg(rf24hr) AS rain_rf24hr_mean,
+               max(rf1hr) - avg(rf1hr) AS rain_spread,
+               count(rf1hr) AS rain_gauges_reporting
+        FROM {src}
+        WHERE date_part('minute', ts)::INT % {step} = 0
+        GROUP BY 1, 2
+    )
+    SELECT *,
+           rain_rf1hr_mean - lag(rain_rf1hr_mean, {per_step})     OVER ({w})
+               AS rain_rf1hr_delta1h,
+           rain_rf1hr_mean - lag(rain_rf1hr_mean, {3 * per_step}) OVER ({w})
+               AS rain_rf1hr_delta3h,
+           -- How wet was it already before today's rain: the last 24 h against
+           -- the 24 h ending two days ago. Saturated ground floods on rain that
+           -- dry ground absorbs. NULLIF keeps a dry baseline from dividing by 0.
+           rain_rf24hr_mean / nullif(
+               lag(rain_rf24hr_mean, {48 * per_step}) OVER ({w}), 0)
+               AS rain_antecedent_ratio
+    FROM d
     """
-    parquet_dir = Path(parquet_dir) if parquet_dir else PATHS.parquet
-    w = pq.read_table(parquet_dir / "water" / f"{year}.parquet",
-                      columns=["station_code", "site_timestamp", "wl_in"]).to_pandas()
-    w["station_code"] = w["station_code"].astype(str)
-    w = w.sort_values(["station_code", "site_timestamp"])
-    grp = w.groupby("station_code", observed=True)["wl_in"]
-    w["rise1h"] = grp.diff(STEPS_1H)
-    w["rise3h"] = grp.diff(3 * STEPS_1H)
-
-    return (w.groupby("site_timestamp")
-              .agg(water_rise1h_mean=("rise1h", "mean"),
-                   water_rise1h_max=("rise1h", "max"),
-                   water_rise3h_mean=("rise3h", "mean"),
-                   water_rising_share=("rise1h", lambda s: (s > 0.05).mean()),
-                   water_offline_share=("wl_in", lambda s: s.isna().mean()))
-              .reset_index())
 
 
-def flow_city_features(year: int, parquet_dir: Path | None = None) -> pd.DataFrame:
-    """Drainage-state indicators for the whole network, per timestamp.
+# ---------------------------------------------------------------------------
+# Water and flow — citywide only, until coordinates arrive
+# ---------------------------------------------------------------------------
+def water_flow_features(years: Optional[Iterable[int]] = None, con=None) -> pd.DataFrame:
+    """Citywide canal state: is the network rising, and is anything backflowing.
 
-    Stations marked `exclude_from_features` are dropped first. Right now that
-    is only FW.PKG.01, the Chao Phraya river gauge, whose thousand-fold larger
-    discharge would otherwise swamp every canal average.
+    Excludes the two river-scale gauges and the dead sensor named in config.
+    FW.PKG.01 and FW.LPW.01 are Chao Phraya gauges reading up to 3,800 m3/s
+    against a canal median under 100 -- averaging them in destroys the canal
+    signal. They are not faulty, they are the wrong scale.
     """
-    parquet_dir = Path(parquet_dir) if parquet_dir else PATHS.parquet
-    path = parquet_dir / "flow" / f"{year}.parquet"
-
-    # Parquet written by an older version of the ingest has no
-    # `exclude_from_features` column. Read what is actually there rather than
-    # failing, and fall back to the station list in config — that way an
-    # existing Parquet build stays usable and nobody has to re-run an hour of
-    # ingestion to pick up one boolean.
-    available = set(pq.ParquetFile(path).schema.names)
-    wanted = ["station_code", "site_timestamp", "flow", "mean_velocity", "sensor_out"]
-    if "exclude_from_features" in available:
-        wanted.append("exclude_from_features")
-    f = pq.read_table(path, columns=[c for c in wanted if c in available]).to_pandas()
-
-    if "exclude_from_features" in f.columns:
-        f = f.loc[~f["exclude_from_features"].fillna(False)]
-    else:
-        excluded = CFG["raw"]["datasets"]["flow"].get("exclude_from_features") or []
-        if excluded:
-            f = f.loc[~f["station_code"].astype(str).isin(excluded)]
-
-    return (f.groupby("site_timestamp")
-              .agg(flow_mean=("flow", "mean"),
-                   flow_velocity_mean=("mean_velocity", "mean"),
-                   # Negative flow means water is running backwards — a canal
-                   # backing up, usually from tide or from a downstream block.
-                   flow_negative_share=("flow", lambda s: (s < 0).mean()),
-                   flow_offline_share=("sensor_out", "mean"))
-              .reset_index())
+    owns = con is None
+    con = con or connect()
+    try:
+        return con.execute(_waterflow_sql(years)).fetchdf()
+    finally:
+        if owns:
+            con.close()
 
 
-# ===========================================================================
+def _waterflow_sql(years: Optional[Iterable[int]] = None) -> str:
+    cfg = load_config()
+    step = cfg["data"]["model_cadence_minutes"]
+    ex = cfg["exclusions"]
+    drop = list(ex["flow_stations_from_canal_aggregate"]) + list(ex["dead_sensors"])
+    drop_sql = ", ".join(f"'{s}'" for s in drop)
+    wsrc, fsrc = interim_sql("water", years), interim_sql("flow", years)
+    per_h = 60 // cfg["data"]["cadence_minutes"]
+    return f"""
+        WITH w AS (
+            SELECT station_code, ts, wl_in,
+                   wl_in - lag(wl_in, {per_h})     OVER (PARTITION BY station_code ORDER BY ts) AS rise_1h,
+                   wl_in - lag(wl_in, {3 * per_h}) OVER (PARTITION BY station_code ORDER BY ts) AS rise_3h
+            FROM {wsrc}
+        ),
+        wagg AS (
+        SELECT ts,
+               avg(rise_1h) AS water_rise_1h_mean,
+               max(rise_1h) AS water_rise_1h_max,
+               avg(rise_3h) AS water_rise_3h_mean,
+               avg(CASE WHEN rise_1h > 0 THEN 1.0 WHEN rise_1h IS NULL THEN NULL ELSE 0.0 END)
+                   AS water_rising_share,
+               avg(CASE WHEN wl_in IS NULL THEN 1.0 ELSE 0.0 END) AS water_offline_share
+        FROM w
+        WHERE date_part('minute', ts)::INT % {step} = 0
+        GROUP BY 1
+        ),
+        fagg AS (
+        SELECT ts,
+               avg(CASE WHEN station_code NOT IN ({drop_sql}) THEN flow END) AS flow_mean,
+               avg(CASE WHEN station_code NOT IN ({drop_sql}) THEN mean_velocity END)
+                   AS flow_velocity_mean,
+               avg(CASE WHEN station_code IN ({drop_sql}) THEN NULL
+                        WHEN flow < 0 THEN 1.0 WHEN flow IS NULL THEN NULL ELSE 0.0 END)
+                   AS flow_negative_share,
+               avg(CASE WHEN flow IS NULL THEN 1.0 ELSE 0.0 END) AS flow_offline_share
+        FROM {fsrc}
+        WHERE date_part('minute', ts)::INT % {step} = 0
+        GROUP BY 1
+        )
+        SELECT * FROM wagg FULL OUTER JOIN fagg USING (ts)
+    """
+
+
+# ---------------------------------------------------------------------------
 # Calendar and tide
-# ===========================================================================
-
-# Principal lunar semi-diurnal tide: 12.4206 hours. This governs the Chao
-# Phraya's twice-daily rise and fall.
-M2_PERIOD_HOURS = 12.4206
-# Synodic month: the spring/neap cycle, which sets how big those tides get.
-SPRING_NEAP_DAYS = 29.5306
-
-
+# ---------------------------------------------------------------------------
 def calendar_features(ts: pd.Series) -> pd.DataFrame:
-    """Time-of-day, season and tidal phase, all as smooth cyclical values.
+    """Cyclical time, monsoon flag, and reconstructed tidal phase.
 
-    Sin/cos pairs are used instead of raw hour numbers so that 23:55 and 00:05
-    are neighbours rather than opposite ends of the range.
-
-    The tide terms are a *proxy*, reconstructed from astronomy rather than
-    measured. They give the model the phase of the tide, not its height. If BMA
-    can supply Chao Phraya tide-gauge records, replace this with the real
-    thing — the amplitude matters as much as the phase.
+    The tide terms are astronomy, not measurement: they place you correctly in
+    the M2 and spring-neap cycles but say nothing about height. Labelled here so
+    nobody downstream mistakes them for a gauge.
     """
-    ts = pd.to_datetime(pd.Series(ts).reset_index(drop=True))
-    hour = ts.dt.hour + ts.dt.minute / 60.0
-    doy = ts.dt.dayofyear.astype(float)
-    # Hours since a fixed epoch, used to advance the tidal phase.
-    epoch_hours = (ts - pd.Timestamp("2019-01-01")).dt.total_seconds() / 3600.0
+    t = pd.to_datetime(ts)
+    hour = t.dt.hour + t.dt.minute / 60.0
+    doy = t.dt.dayofyear
+    # Hours since an arbitrary fixed epoch -- only the phase matters, not the origin.
+    since = (t - pd.Timestamp("2019-01-01")).dt.total_seconds() / 3600.0
 
-    out = pd.DataFrame({
+    return pd.DataFrame({
         "cal_hour_sin": np.sin(2 * np.pi * hour / 24),
         "cal_hour_cos": np.cos(2 * np.pi * hour / 24),
         "cal_doy_sin": np.sin(2 * np.pi * doy / 365.25),
         "cal_doy_cos": np.cos(2 * np.pi * doy / 365.25),
-        # Bangkok's rainy season, May to October.
-        "cal_monsoon": ts.dt.month.isin([5, 6, 7, 8, 9, 10]).astype(np.int8),
-        "tide_m2_sin": np.sin(2 * np.pi * epoch_hours / M2_PERIOD_HOURS),
-        "tide_m2_cos": np.cos(2 * np.pi * epoch_hours / M2_PERIOD_HOURS),
-        "tide_spring_neap": np.sin(2 * np.pi * epoch_hours / (SPRING_NEAP_DAYS * 24)),
-    })
-    return out
+        "cal_monsoon": t.dt.month.between(5, 10).astype("float32"),
+        "tide_m2_sin": np.sin(2 * np.pi * since / M2_HOURS),
+        "tide_m2_cos": np.cos(2 * np.pi * since / M2_HOURS),
+        "tide_spring_neap": np.cos(2 * np.pi * since / (SYNODIC_DAYS * 24)),
+    }, index=t.index)
 
 
-# ===========================================================================
-# Optional joins — used only if the files have been generated
-# ===========================================================================
+# ---------------------------------------------------------------------------
+# External rainfall
+# ---------------------------------------------------------------------------
+def external_rain(district_by_code: Dict[str, str]) -> pd.DataFrame:
+    """GFS forecast rain and ERA5 past rain, keyed by district code.
 
-def load_forecast_rain(path: Path | None = None) -> pd.DataFrame | None:
-    """Weather-model rainfall per district and hour, if it has been fetched.
+    THE DISTINCTION THAT MATTERS. `fcst_*` is what the weather model PREDICTED at
+    the time and is legitimate as a forecast feature. `era5_*` is what actually
+    FELL, reconstructed afterwards -- legitimate as past rain, never as a
+    forecast. Using ERA5 as `rain_fcst_*` trains the model on the answer sheet;
+    it scores beautifully and collapses on the first live day.
 
-    Built by notebook 03b from the Open-Meteo historical-forecast archive.
-    Returns None when the file is absent, and the pipeline carries on without
-    it rather than failing.
+    That is not hypothetical: it happened in this project on 8 August 2026, and
+    `assert_forecast_is_not_reanalysis()` exists because the naming convention
+    alone did not catch it. Call that guard before using these columns.
     """
-    path = Path(path) if path else PATHS.training / "forecast_rain.parquet"
-    if not path.exists():
-        return None
-    df = pd.read_parquet(path)
+    cfg = load_config()
+    om = cfg["external"]["open_meteo"]
+    name_to_code = {v: k for k, v in district_by_code.items()}
 
-    # The hourly timestamp column has been spelled differently by different
-    # versions of notebook 03b — `hour_ts` in the 1.x builds, `site_hour` now.
-    # Accept whichever is present rather than failing, so a forecast file
-    # fetched once (an hour of API calls) stays usable across versions. Same
-    # reasoning as the `exclude_from_features` fallback in flow_city_features.
-    for candidate in ("site_hour", "site_timestamp", "hour_ts"):
-        if candidate in df.columns:
-            df["site_hour"] = pd.to_datetime(df[candidate]).dt.floor("h")
-            break
-    else:
-        raise KeyError(
-            f"{path.name} has no recognisable hourly timestamp column "
-            f"(looked for site_hour, site_timestamp, hour_ts); got {list(df.columns)}")
+    out = []
+    for path, prefix in ((om["forecast"]["out"], "fcst"), (om["observed"]["out"], "era5")):
+        df = pd.read_parquet(resolve(path))
+        df["district_code"] = df["district"].map(name_to_code)
+        df = df.dropna(subset=["district_code"])
+        keep = [c for c in df.columns if c.startswith(f"{prefix}_")]
+        out.append(df[["district_code", "ts"] + keep])
 
-    keep = ["prefix", "site_hour"] + [c for c in df.columns if c.startswith("rain_fcst")]
-    return df[keep].drop_duplicates(["prefix", "site_hour"])
+    merged = out[0].merge(out[1], on=["district_code", "ts"], how="outer")
+    return merged.sort_values(["district_code", "ts"])
 
 
-def load_station_spatial(path: Path | None = None) -> pd.DataFrame | None:
-    """Per-station terrain attributes from the DEM, if they have been extracted."""
-    path = Path(path) if path else PATHS.gis / "station_spatial.parquet"
-    if not path.exists():
-        return None
-    df = pd.read_parquet(path)
-    df["station_code"] = df["station_code"].astype(str)
-    return df
+# ---------------------------------------------------------------------------
+# Assembly
+# ---------------------------------------------------------------------------
+def _district_code_map() -> Dict[str, str]:
+    """Map station-code prefix -> district name, from the registry.
 
-
-# ===========================================================================
-# The year builder — puts it all together
-# ===========================================================================
-
-def build_year(year: int,
-               parquet_dir: Path | None = None,
-               horizons: Iterable[int] | None = None,
-               tiers: Iterable[float] | None = None,
-               stride: int | None = None,
-               verbose: bool = True) -> pd.DataFrame:
-    """One year of flood stations -> one model-ready table.
-
-    Each output row is (flood station, anchor timestamp) at the configured
-    cadence, carrying its features and its future labels.
+    The district assignment is trustworthy even though the coordinates are not:
+    it comes from the code prefix, not from a guessed position.
     """
-    parquet_dir = Path(parquet_dir) if parquet_dir else PATHS.parquet
-    horizons = list(horizons) if horizons is not None else list(CFG["forecast"]["horizons_h"])
-    tiers = list(tiers) if tiers is not None else tier_values()
-    stride = stride or anchor_stride()
+    from .stations import load_registry
+    reg = load_registry()
+    reg = reg.dropna(subset=["district"])
+    reg["code"] = reg.station_code.map(district_prefix)
+    alias = load_config()["terrain"].get("district_name_aliases", {})
+    reg["district"] = reg["district"].map(lambda d: alias.get(d, d))
+    return (reg.drop_duplicates("code").set_index("code")["district"].to_dict())
 
-    if verbose:
-        print(f"[{year}] loading flood depths ...")
-    fl = pq.read_table(parquet_dir / "flood" / f"{year}.parquet",
-                       columns=["station_code", "site_timestamp", "flood"]).to_pandas()
-    fl["station_code"] = fl["station_code"].astype(str)
-    fl = fl.sort_values(["station_code", "site_timestamp"])
 
-    if verbose:
-        print(f"[{year}] building rain / water / flow aggregates ...")
-    rain = rain_district_features(year, parquet_dir)
-    water = water_city_features(year, parquet_dir)
-    flow = flow_city_features(year, parquet_dir)
+def _external_frame() -> pd.DataFrame:
+    """GFS forward rain and ERA5 past rain, hourly, keyed by district code.
+
+    ----------------------------------------------------------------------
+    A CAVEAT ON `rain_fcst_*` THAT MUST NOT BE LOST
+    ----------------------------------------------------------------------
+    `rain_fcst_{h}h` is the rainfall the weather model expected over `(t, t+h]`,
+    taken from Open-Meteo's archived-forecast series. That series is stitched
+    from the *first hours of each successive model run*, so the value at t+6h
+    came from a run launched a few hours before t+6h -- possibly after t.
+
+    At 1 hour this is harmless. At 6 hours the feature may carry a little
+    information that was not strictly available at t, which would make the
+    6-hour model look slightly better in testing than in production.
+
+    It is written down rather than hidden because it is the same shape as the
+    ERA5 mistake this project already made once. If Phase 5 shows the 6-hour
+    model leaning on it, the fix is Open-Meteo's Previous Runs API, which serves
+    each variable at a fixed lead time instead of stitching.
+    """
+    cfg = load_config()
+    om = cfg["external"]["open_meteo"]
+    horizons = cfg["horizons_hours"]
 
     frames = []
-    for code, grp in fl.groupby("station_code", observed=True, sort=True):
-        depth = grp["flood"].to_numpy(dtype=float)
-        cols: dict[str, np.ndarray] = {}
+    for path, prefix in ((om["forecast"]["out"], "fcst"),
+                         (om["observed"]["out"], "era5")):
+        df = pd.read_parquet(resolve(path))
+        col = next(c for c in df.columns if c.startswith(f"{prefix}_") and "precip" in c)
+        frames.append(df[["district", "ts", col]].rename(columns={col: prefix}))
 
-        # ---- labels: strictly future, so the answer is never in the question
+    ext = frames[0].merge(frames[1], on=["district", "ts"], how="outer")
+    ext["ts"] = pd.to_datetime(ext.ts)
+    ext = ext.sort_values(["district", "ts"]).set_index("ts")
+
+    out = []
+    for name, g in ext.groupby("district"):
+        row = {"district": name}
         for h in horizons:
-            lab = future_window_labels(depth, h * STEPS_1H, tiers)
-            cols[f"y_maxdepth_{h}h"] = lab["maxdepth"]
-            cols[f"y_valid_{h}h"] = lab["valid"]
-            for tier in tiers:
-                cols[f"y_ge{int(tier)}_{h}h"] = lab[f"ge{int(tier)}"]
-
-        # ---- features: only the past
-        cols.update(flood_features(depth))
-
-        sub = pd.DataFrame({"site_timestamp": grp["site_timestamp"].to_numpy(), **cols})
-        sub = sub.iloc[::stride]                       # thin down to anchor rows
-        sub.insert(0, "station_code", code)
-        frames.append(sub)
-
-    out = pd.concat(frames, ignore_index=True)
-    out["prefix"] = out["station_code"].str.split(".").str[1]
-
-    # ---- joins. Every source sits on the same 5-minute grid, so these are
-    #      exact-key merges, not interpolations.
-    out = out.merge(rain, on=["prefix", "site_timestamp"], how="left")
-    out = out.merge(water, on="site_timestamp", how="left")
-    out = out.merge(flow, on="site_timestamp", how="left")
-
-    fcst = load_forecast_rain()
-    if fcst is not None:
-        out["site_hour"] = out["site_timestamp"].dt.floor("h")
-        out = out.merge(fcst, on=["prefix", "site_hour"], how="left").drop(columns="site_hour")
-    elif verbose:
-        print(f"[{year}] no forecast_rain.parquet — skipping forecast-rain features")
-
-    spatial = load_station_spatial()
-    if spatial is not None:
-        out = out.merge(spatial, on="station_code", how="left")
-    elif verbose:
-        print(f"[{year}] no station_spatial.parquet — skipping terrain features")
-
-    # ---- calendar and tide
-    out = pd.concat([out.reset_index(drop=True),
-                     calendar_features(out["site_timestamp"])], axis=1)
-
-    # ---- interaction: heavy rain on already-wet ground is the classic setup
-    if {"rain_rf1hr_mean", "fl_max24h"} <= set(out.columns):
-        out["rain_x_recent_flood"] = (out["rain_rf1hr_mean"].fillna(0)
-                                      * out["fl_max24h"].fillna(0))
-
-    # ---- onset flags, so evaluation can separate forecasting from monitoring
-    for tier in tiers:
-        out[f"is_onset_ge{int(tier)}"] = onset_mask(
-            out["fl_depth_now"].to_numpy(dtype=float), tier).astype(np.int8)
-
-    # Keep only anchors whose nearest-horizon label was at least partly observed.
-    out = out[out[f"y_valid_{horizons[0]}h"] > 0].reset_index(drop=True)
-    out["station_code"] = out["station_code"].astype("category")
-    out["prefix"] = out["prefix"].astype("category")
-
-    if verbose:
-        primary = f"y_ge15_{horizons[0]}h"
-        n_pos = int(out[primary].sum()) if primary in out else -1
-        print(f"[{year}] {len(out):,} rows, {primary} positives: {n_pos:,}")
-    return out
+            # Sum over (t, t+h]: roll backward, then move the stamp back h hours.
+            row[f"rain_fcst_{h}h"] = g["fcst"].rolling(f"{h}h").sum().shift(-h, freq="h")
+        # ERA5 is PAST rain only -- what fell in the hours BEFORE t.
+        row["era5_rain_3h"] = g["era5"].rolling("3h").sum()
+        out.append(pd.DataFrame(row).reset_index())
+    return pd.concat(out, ignore_index=True).sort_values(["ts", "district"])
 
 
-# ===========================================================================
-# Reading the yearly tables back
-# ===========================================================================
+def _terrain_frame() -> Optional[pd.DataFrame]:
+    """District terrain, renamed with a `terr_` prefix. None if Phase 1 not run."""
+    path = resolve("data/features/terrain_district_ground.parquet")
+    if not path.exists():
+        return None
+    terr = pd.read_parquet(path)
+    want = ["district", "elev_m_p50", "elev_m_p10", "depression_depth_m_p95",
+            "depressed_area_share", "slope_deg_p50", "twi_mean", "log_flow_acc_p95"]
+    terr = terr[[c for c in want if c in terr.columns]].copy()
+    terr.columns = ["district"] + [f"terr_{c}" for c in terr.columns[1:]]
+    return terr
 
-def load_training_years(years: Iterable[int] | None = None,
-                        training_dir: Path | None = None,
-                        float32: bool = True) -> pd.DataFrame:
-    """Read the per-year feature tables into one frame.
 
-    Kept as a convenience wrapper; the implementation lives in
-    `bkkflood.data.load_years`, which is also where the memory-lean per-fold
-    loaders are. Two things it handles that a bare `pd.concat` over
-    `pd.read_parquet` does not, and the first is fatal:
+def write_feature_table(year: int, con=None, out: Optional[str] = None) -> str:
+    """Build one year of model-ready rows and write it to Parquet.
 
-    1. **The categorical dtype is silently lost.** Each yearly file carries a
-       different `station_code` category list (the roster grows from 99 sensors
-       to 107), and pandas degrades disagreeing categoricals to plain strings.
-       LightGBM then refuses the frame — "pandas dtypes must be int, float or
-       bool" — and since `station_code` is a model input, training stops dead.
+    THE JOINS HAPPEN IN DUCKDB, NOT PANDAS, and that is not a style choice. A
+    year is 3.5 million rows by ~55 columns; assembling it with `pandas.merge`
+    peaked over the 3.9 GB the machine has and the process was killed with no
+    traceback -- an out-of-memory kill looks exactly like a silent success if
+    the output is piped. DuckDB streams the joins and spills to disk, and `COPY`
+    writes the result without ever holding the whole table in memory.
 
-    2. **float64 is twice the memory it needs to be.** 53 float columns across
-       25M rows is about 10 GB. LightGBM bins feature values into its own
-       compact representation regardless, so float32 changes no model input.
-
-    **Prefer `bkkflood.data.load_fold` for training.** This function still holds
-    every year in memory at once (~5.8 GB after downcasting, and more once the
-    train/val/test copies exist). `load_fold` reads one fold, keeps only the
-    columns that model needs, and thins the negatives while reading — which
-    brings a 17-million-row training split down to a few hundred megabytes.
+    Everything is cast to FLOAT (32-bit) on the way out. Sensor readings carry
+    two or three significant figures; 64-bit doubles store noise at twice the
+    price.
     """
-    from .data import load_years
+    cfg = load_config()
+    out = out or f"data/features/features_{year}.parquet"
+    dest = resolve(out)
+    dest.parent.mkdir(parents=True, exist_ok=True)
 
-    return load_years(years if years is not None else CFG["raw"]["years"],
-                      training_dir=training_dir)
+    owns = con is None
+    con = con or connect()
+    try:
+        from .labels import labels_sql
+        con.execute(f"CREATE OR REPLACE TEMP VIEW v_flood AS {_flood_sql([year])}")
+        con.execute(f"CREATE OR REPLACE TEMP VIEW v_rain  AS {_rain_sql([year])}")
+        con.execute(f"CREATE OR REPLACE TEMP VIEW v_wf    AS {_waterflow_sql([year])}")
+        con.execute(f"CREATE OR REPLACE TEMP VIEW v_lab   AS {labels_sql([year])}")
+
+        lab_cols = [d[0] for d in con.execute(
+            "SELECT * FROM v_lab LIMIT 0").description]
+        # Prefix -> district NAME. Joining terrain and external data on the
+        # name is not cosmetic: 97 station prefixes map onto 49 districts,
+        # because rain, water, flow and flood each use their own prefix for the
+        # same place. Inverting that map to name -> prefix keeps one arbitrary
+        # prefix per district and silently drops the rest -- it cost 16 of the
+        # 33 flood districts their terrain, and showed up only as an oddly
+        # round 46.1% null rate appearing in two unrelated feature blocks at
+        # once.
+        dmap = pd.DataFrame(sorted(_district_code_map().items()),
+                            columns=["district_code", "district"])
+        con.register("t_dmap", dmap)
+        ext = _external_frame()
+        con.register("t_ext", ext[ext.ts.dt.year == year])
+        terr = _terrain_frame()
+        has_terr = terr is not None
+        if has_terr:
+            con.register("t_terr", terr)
+
+        label_cols = [c for c in lab_cols
+                      if c not in ("station_code", "ts", "fl_depth_now")]
+        ext_cols = [c for c in ext.columns if c not in ("district", "ts")]
+        terr_cols = ([c for c in terr.columns if c != "district"]
+                     if has_terr else [])
+
+        # Float32 everywhere except the label booleans and the keys.
+        def cast(cols, src):
+            return ", ".join(
+                f"{src}.{c}" if c.startswith(("y_valid", "y_ge", "is_onset"))
+                else f"{src}.{c}::FLOAT AS {c}" for c in cols)
+
+        sel = [
+            "f.station_code", "f.ts", "f.district_code", "d.district",
+            cast([c for c in _FLOOD_COLS], "f"),
+            cast(label_cols, "l"),
+            cast([c for c in _RAIN_COLS], "r"),
+            cast([c for c in _WF_COLS], "w"),
+            cast(ext_cols, "e"),
+        ]
+        if has_terr:
+            sel.append(cast(terr_cols, "g"))
+        sel.append(_CALENDAR_SQL)
+        sel.append("r.rain_rf1hr_mean::FLOAT * f.fl_max_24h::FLOAT AS rain_x_recent_flood")
+        if has_terr:
+            sel.append("r.rain_rf1hr_mean::FLOAT * g.terr_depression_depth_m_p95::FLOAT "
+                       "AS rain_x_depression")
+            sel.append("'district' AS terr_granularity")
+
+        terr_join = ("LEFT JOIN t_terr g ON g.district = d.district"
+                     if has_terr else "")
+        q = f"""
+        COPY (
+            WITH f AS (
+                SELECT *, split_part(station_code, '.', 2) AS district_code
+                FROM v_flood
+            )
+            SELECT {', '.join(sel)}
+            FROM f
+            LEFT JOIN v_lab    l ON l.station_code = f.station_code AND l.ts = f.ts
+            LEFT JOIN v_rain   r ON r.district_code = f.district_code AND r.ts = f.ts
+            LEFT JOIN v_wf     w ON w.ts = f.ts
+            LEFT JOIN t_dmap   d ON d.district_code = f.district_code
+            -- The external series is strictly hourly and the grid is 15-minute,
+            -- so this is an exact match on the containing hour rather than an
+            -- ASOF join. Deliberate: ASOF would carry the last known value
+            -- forward across a gap, and 2021 begins on 23 March -- every row
+            -- before that would have quietly inherited nothing, or worse, a
+            -- neighbouring hour. A missing hour must stay missing.
+            LEFT JOIN t_ext e
+                 ON e.district = d.district AND e.ts = date_trunc('hour', f.ts)
+            {terr_join}
+        ) TO '{dest}' (FORMAT PARQUET, COMPRESSION ZSTD)
+        """
+        con.execute(q)
+    finally:
+        if owns:
+            con.close()
+    return str(dest)
 
 
-# ===========================================================================
-# Feature list bookkeeping
-# ===========================================================================
+_FLOOD_COLS = ["fl_depth_now", "fl_depth_lag_1h", "fl_depth_lag_3h", "fl_rise_15min",
+               "fl_rise_1h", "fl_max_3h", "fl_max_24h", "fl_mean_1h", "fl_std_3h",
+               "fl_missing_share_3h", "fl_hours_since_5cm", "fl_hours_since_15cm"]
+_RAIN_COLS = ["rain_rf1hr_mean", "rain_rf1hr_max", "rain_rf3hr_mean", "rain_rf3hr_max",
+              "rain_rf6hr_mean", "rain_rf24hr_mean", "rain_spread",
+              "rain_gauges_reporting", "rain_rf1hr_delta1h", "rain_rf1hr_delta3h",
+              "rain_antecedent_ratio"]
+_WF_COLS = ["water_rise_1h_mean", "water_rise_1h_max", "water_rise_3h_mean",
+            "water_rising_share", "water_offline_share", "flow_mean",
+            "flow_velocity_mean", "flow_negative_share", "flow_offline_share"]
 
-NON_FEATURE_PREFIXES = ("y_", "is_onset_")
-NON_FEATURE_COLS = {"prefix", "site_timestamp", "site_hour"}
+# Cyclical time and reconstructed tidal phase, computed in SQL so the whole
+# table can be built without materialising it. The tide terms are astronomy,
+# not measurement: they place you correctly in the M2 and spring-neap cycles
+# but say nothing about HEIGHT. A spring tide during a storm surge and a spring
+# tide on a calm day are identical here. A real Chao Phraya tide gauge is
+# request #5 on the BMA list.
+_CALENDAR_SQL = f"""
+    sin(2*pi()*(date_part('hour', f.ts) + date_part('minute', f.ts)/60.0)/24)::FLOAT AS cal_hour_sin,
+    cos(2*pi()*(date_part('hour', f.ts) + date_part('minute', f.ts)/60.0)/24)::FLOAT AS cal_hour_cos,
+    sin(2*pi()*date_part('dayofyear', f.ts)/365.25)::FLOAT AS cal_doy_sin,
+    cos(2*pi()*date_part('dayofyear', f.ts)/365.25)::FLOAT AS cal_doy_cos,
+    (date_part('month', f.ts) BETWEEN 5 AND 10)::FLOAT AS cal_monsoon,
+    sin(2*pi()*(epoch(f.ts - TIMESTAMP '2019-01-01')/3600.0)/{M2_HOURS})::FLOAT AS tide_m2_sin,
+    cos(2*pi()*(epoch(f.ts - TIMESTAMP '2019-01-01')/3600.0)/{M2_HOURS})::FLOAT AS tide_m2_cos,
+    cos(2*pi()*(epoch(f.ts - TIMESTAMP '2019-01-01')/3600.0)/{SYNODIC_DAYS * 24})::FLOAT AS tide_spring_neap
+"""
 
 
-def feature_columns(df: pd.DataFrame, include_station: bool = True) -> list[str]:
-    """Which columns the model is allowed to see.
+def feature_columns(df: pd.DataFrame) -> List[str]:
+    """Model inputs only. Excludes labels, keys and evaluation metadata.
 
-    Labels, timestamps and the onset flags are excluded. The onset flag in
-    particular must never become a feature: it is derived from the quantity the
-    model is predicting, so including it would be a subtle leak.
-
-    **`station_code` is included, as a categorical.** That deserves a word,
-    because it is the feature that shapes the model's character:
-
-    * It genuinely helps. Some sites flood twenty times a year and some never
-      do, and knowing which is which is real, usable information.
-    * It is also what makes the 6-hour forecast largely *climatological*. At
-      long lead times the model leans on "this place floods often" because
-      nothing else in the input tells it about a storm that has not arrived
-      yet. It was the single largest input at 6 h in the previous version.
-
-    Both facts are true at once. Keep the feature, and be honest in the report
-    about what the long-horizon model is really doing. Pass
-    `include_station=False` to train a station-agnostic model — useful for
-    testing whether the model generalises to a site it has never seen, which is
-    exactly the situation when BMA installs a new sensor.
+    `is_onset_*` is deliberately excluded: it is derived from the label window's
+    starting condition and exists to split recall into onset and ongoing when
+    reporting. Feeding it to a model would be leakage of the mildest and most
+    embarrassing kind.
     """
-    drop = set(NON_FEATURE_COLS)
-    if not include_station:
-        drop.add("station_code")
+    drop_exact = {"station_code", "ts", "district", "district_code", "terr_granularity"}
     return [c for c in df.columns
-            if not c.startswith(NON_FEATURE_PREFIXES) and c not in drop]
+            if c not in drop_exact and not c.startswith(("y_", "is_onset_"))]
 
 
-def label_columns(df: pd.DataFrame) -> list[str]:
-    return [c for c in df.columns if c.startswith("y_")]
+def check_features_against_raw(year: int, n_rows: int = 200, con=None,
+                               seed: int = 0) -> Dict[str, object]:
+    """Recompute a sample of rolling features from the 5-minute source.
+
+    Same philosophy as `check_labels_against_raw`: recompute, do not infer. Four
+    times in this project a *check* was wrong rather than the data -- absence
+    read as difference, a masked surface compared against itself, an absolute
+    count used where a density was needed, and autocorrelation mistaken for
+    leakage. Every one of those was a check that reasoned from summary
+    statistics instead of going back to the source.
+
+    Verifies two things that would be invisible otherwise:
+      * `fl_max_3h` really is the maximum over `(t-3h, t]` and INCLUDES t
+      * it does not include a single reading after t
+
+    The second is the one that matters. A window written `BETWEEN 3 PRECEDING
+    AND 1 FOLLOWING` instead of `AND CURRENT ROW` produces a feature that looks
+    entirely reasonable, correlates beautifully with the label, and is worthless.
+    """
+    owns = con is None
+    con = con or connect()
+    try:
+        src = interim_sql("flood", [year])
+        feat = resolve(f"data/features/features_{year}.parquet")
+        # Sample WET rows, not random ones. On a uniform sample almost every row
+        # is a flat zero, where a forward-looking window and a backward-looking
+        # one give the same answer -- the first version of this check compared
+        # 192 rows and only ONE of them could have distinguished the two. A
+        # check that cannot fail is not a check.
+        # `USING SAMPLE` is applied BEFORE the filter -- the optimiser pushes it
+        # down -- so asking for 200 wet rows returned 1. Ordering by a hash is
+        # deterministic, respects the filter, and needs no seed.
+        con.execute(f"""
+        CREATE OR REPLACE TEMP TABLE probe_feat AS
+        (SELECT station_code, ts, fl_depth_now, fl_max_3h FROM '{feat}'
+          WHERE fl_max_3h > 0
+          ORDER BY hash(station_code || ts::VARCHAR || {seed}) LIMIT {n_rows})
+        UNION ALL
+        (SELECT station_code, ts, fl_depth_now, fl_max_3h FROM '{feat}'
+          WHERE fl_max_3h IS NOT NULL
+          ORDER BY hash(ts::VARCHAR || station_code || {seed}) LIMIT {n_rows // 4})
+        """)
+        got = con.execute(f"""
+        SELECT p.*,
+               (SELECT max(s.flood) FROM {src} s
+                 WHERE s.station_code = p.station_code
+                   -- >=, not >. The window is the CLOSED interval [t-3h, t]:
+                   -- 37 readings at 5-minute spacing, matching
+                   -- `RANGE BETWEEN INTERVAL '3 hours' PRECEDING AND CURRENT
+                   -- ROW`. Writing `>` here made the check disagree with the
+                   -- feature on 28 of 250 rows -- the reading at exactly t-3h,
+                   -- whenever it happened to be the window maximum. The feature
+                   -- was right and the check was wrong, which is now the fourth
+                   -- time that has happened in this project.
+                   AND s.ts >= p.ts - INTERVAL '3 hours'
+                   AND s.ts <= p.ts)                       AS recomputed_incl_t,
+               (SELECT max(s.flood) FROM {src} s
+                 WHERE s.station_code = p.station_code
+                   AND s.ts >  p.ts
+                   AND s.ts <= p.ts + INTERVAL '3 hours')  AS future_only
+        FROM probe_feat p
+        """).fetchdf()
+    finally:
+        if owns:
+            con.close()
+
+    ok = got.dropna(subset=["fl_max_3h", "recomputed_incl_t"])
+    matches = (ok.fl_max_3h - ok.recomputed_incl_t).abs() <= 1e-4
+    # Where the future is strictly higher than the past window, the feature must
+    # follow the PAST. If it tracks the future instead, the window looks forward.
+    fut = got.dropna(subset=["fl_max_3h", "future_only", "recomputed_incl_t"])
+    fut = fut[fut.future_only > fut.recomputed_incl_t + 1e-4]
+    leaked = int((fut.fl_max_3h > fut.recomputed_incl_t + 1e-4).sum())
+
+    return {
+        "rows_compared": int(len(ok)),
+        "mismatches": int((~matches).sum()),
+        "rows_where_future_is_higher": int(len(fut)),
+        "rows_that_tracked_the_future": leaked,
+        "passed": bool(matches.all() and leaked == 0),
+        "note": "fl_max_3h recomputed over (t-3h, t] from the 5-minute source",
+    }
+
+
+def load_features(years: Iterable[int], columns: Optional[Sequence[str]] = None,
+                  tier_cm: Optional[int] = None, horizon_h: Optional[int] = None,
+                  scorable_only: bool = False, con=None) -> pd.DataFrame:
+    """Read built feature Parquet back, a few columns at a time.
+
+    ALWAYS PASS `columns`. A year is 3.5 million rows by 79 columns; two years
+    read in full is roughly 2 GB of pandas and this project has already been
+    OOM-killed once doing exactly that, silently, with the traceback swallowed
+    by a pipe. Baselines need seven columns and a fold needs two years.
+
+    `tier_cm` and `horizon_h` add the matching label, validity flag and onset
+    flag, so callers do not have to spell out the naming convention and cannot
+    accidentally score rows whose forward window was never observed.
+    """
+    cols = list(columns) if columns else None
+    if cols is not None:
+        for c in ("station_code", "ts"):
+            if c not in cols:
+                cols.insert(0, c)
+        if tier_cm is not None and horizon_h is not None:
+            for c in (f"y_ge{tier_cm}_{horizon_h}h", f"y_valid_{horizon_h}h",
+                      f"is_onset_{tier_cm}_{horizon_h}h",
+                      f"y_maxdepth_{horizon_h}h"):
+                if c not in cols:
+                    cols.append(c)
+
+    paths = [str(resolve(f"data/features/features_{y}.parquet")) for y in years]
+    missing = [p for p in paths if not pd.io.common.file_exists(p)]
+    if missing:
+        raise FileNotFoundError(
+            f"build these first with write_feature_table(): {missing}")
+
+    sel = ", ".join(cols) if cols else "*"
+    where = (f"WHERE y_valid_{horizon_h}h"
+             if scorable_only and horizon_h is not None else "")
+    owns = con is None
+    con = con or connect()
+    try:
+        return con.execute(
+            f"SELECT {sel} FROM read_parquet({paths}) {where} ORDER BY ts"
+        ).fetchdf()
+    finally:
+        if owns:
+            con.close()
+
+
+def forecast_value_test(years: Sequence[int], tier_cm: int = 15,
+                        horizon_h: int = 3, con=None) -> Dict[str, pd.DataFrame]:
+    """Does GFS forecast rain earn its place in the feature set? Measure, then decide.
+
+    The question is not "is GFS a good weather model". It is narrower and
+    harsher: **given that we already know what the BMA gauges recorded up to
+    time t, does knowing what GFS expects for the next few hours help predict a
+    road flood?**
+
+    Three tests, in increasing order of what they actually settle:
+
+    1. **Meteorological skill.** Compare the forecast for an hour against what
+       the gauges recorded in that hour. Reported on WET hours only. Roughly
+       three quarters of hours are dry, so an overall agreement rate of 70%
+       measures nothing but the dry ones — this project has already been misled
+       by exactly that statistic once.
+
+    2. **Standalone discrimination.** PR-AUC of each rain variable on its own
+       against the flood label. Establishes whether the forecast carries any
+       signal at all.
+
+    3. **Marginal contribution — the one that decides it.** Compare gauge rain
+       alone against gauge rain PLUS the forecast, as `past 3 h observed +
+       next 3 h expected`, which is a physically meaningful quantity in
+       millimetres rather than an arbitrary combination. Reported separately on
+       ONSET rows, because that is the only subset where a forecast could help:
+       on rows that are already flooded, the current depth answers the question
+       and the rain is irrelevant.
+
+    If test 3 shows nothing on onsets, `rain_fcst_*` should be dropped. It is
+    the only feature block with a fold problem (GFS starts 23 March 2021, so
+    fold 1 trains on years with no forecast at all), and dropping it makes that
+    problem disappear rather than needing to be managed.
+    """
+    cols = ["rain_rf1hr_mean", "rain_rf3hr_mean", "rain_fcst_1h",
+            f"rain_fcst_{horizon_h}h", "district", "fl_depth_now"]
+    df = load_features(years, cols, tier_cm=tier_cm, horizon_h=horizon_h, con=con)
+
+    # --- 1. meteorological skill, on wet hours ------------------------------
+    d = (df[["district", "ts", "rain_rf1hr_mean", "rain_fcst_1h"]]
+         .drop_duplicates(["district", "ts"]).sort_values(["district", "ts"]))
+    d["ts_hour"] = pd.to_datetime(d.ts).dt.floor("h")
+    hourly = (d.groupby(["district", "ts_hour"])
+                .agg(gauge=("rain_rf1hr_mean", "mean"),
+                     fcst=("rain_fcst_1h", "mean")).reset_index())
+    # What the gauges recorded in the hour the forecast was FOR.
+    hourly["gauge_next"] = hourly.groupby("district")["gauge"].shift(-1)
+    h = hourly.dropna(subset=["fcst", "gauge_next"])
+    wet = h[(h.gauge_next >= 0.1) | (h.fcst >= 0.1)]
+    skill = pd.DataFrame([{
+        "hours_compared": len(h),
+        "share_of_hours_dry_both_ways": float((~((h.gauge_next >= 0.1) |
+                                                 (h.fcst >= 0.1))).mean()),
+        "wet_hours": len(wet),
+        "wet_hour_correlation": float(wet.gauge_next.corr(wet.fcst)),
+        "wet_hour_hit_rate": float(((wet.gauge_next >= 0.1) &
+                                    (wet.fcst >= 0.1)).mean()),
+        "mean_gauge_mm_when_wet": float(wet.gauge_next.mean()),
+        "mean_fcst_mm_when_wet": float(wet.fcst.mean()),
+    }])
+
+    # --- 2 and 3. value against the flood label -----------------------------
+    y_col, on_col = f"y_ge{tier_cm}_{horizon_h}h", f"is_onset_{tier_cm}_{horizon_h}h"
+    v = df[df[f"y_valid_{horizon_h}h"].fillna(False)]
+    y = v[y_col].fillna(False).to_numpy(dtype=bool)
+    onset = v[on_col].fillna(False).to_numpy(dtype=bool)
+
+    gauge_past = v["rain_rf3hr_mean"].to_numpy(dtype="float64")
+    fcst_fwd = v[f"rain_fcst_{horizon_h}h"].to_numpy(dtype="float64")
+    combined = gauge_past + np.nan_to_num(fcst_fwd, nan=0.0)
+
+    # THE CONTROL. A forecast with a wet-hour correlation of 0.015 should not be
+    # able to improve anything, so any gain it shows is probably not forecast
+    # skill -- it is GFS knowing that August in Bangkok is wetter than January.
+    # Seasonality is real information, but `cal_monsoon` and `cal_doy_*` already
+    # carry it for free and without a fold problem.
+    #
+    # This control replaces each forecast value with the average forecast for
+    # that district, month and hour: a series with all of the seasonality and
+    # none of the day-to-day skill. If the gain survives against THIS, the
+    # forecast is contributing something a calendar cannot.
+    ts = pd.to_datetime(v["ts"])
+    seasonal_key = pd.DataFrame({
+        "district": v["district"].to_numpy(),
+        "month": ts.dt.month.to_numpy(),
+        "hour": ts.dt.hour.to_numpy(),
+        "fcst": fcst_fwd,
+    })
+    seasonal = (seasonal_key.groupby(["district", "month", "hour"])["fcst"]
+                            .transform("mean").to_numpy(dtype="float64"))
+    combined_seasonal = gauge_past + np.nan_to_num(seasonal, nan=0.0)
+
+    candidates = {
+        "gauge_past_3h": gauge_past,
+        f"gfs_forecast_next_{horizon_h}h": fcst_fwd,
+        "gauge_past_plus_forecast": combined,
+        "gauge_past_plus_SEASONAL_control": combined_seasonal,
+        "current_depth (reference)": v["fl_depth_now"].to_numpy(dtype="float64"),
+    }
+    rows = []
+    for name, s in candidates.items():
+        rows.append({
+            "score": name,
+            "pr_auc_all": pr_auc(y, s),
+            "pr_auc_onset_only": pr_auc(y[onset], s[onset]),
+            "positives_all": int(y.sum()),
+            "positives_onset": int(y[onset].sum()),
+        })
+    value = pd.DataFrame(rows)
+    base = float(y.mean())
+    value["base_rate"] = base
+    value["lift_over_base_onset"] = (value.pr_auc_onset_only
+                                     / max(float(y[onset].mean()), 1e-12))
+
+    def onset_auc(name):
+        return float(value.loc[value.score == name, "pr_auc_onset_only"].iloc[0])
+
+    gain = onset_auc("gauge_past_plus_forecast") - onset_auc("gauge_past_3h")
+    gain_seasonal = onset_auc("gauge_past_plus_SEASONAL_control") - onset_auc("gauge_past_3h")
+    verdict = pd.DataFrame([{
+        "onset_pr_auc_gain_from_forecast": gain,
+        "onset_pr_auc_gain_from_seasonality_alone": gain_seasonal,
+        "gain_attributable_to_actual_forecast_skill": gain - gain_seasonal,
+        "years": list(years),
+        "tier_cm": tier_cm,
+        "horizon_h": horizon_h,
+        "rows_scored": int(len(v)),
+    }])
+    return {"meteorological_skill": skill, "value_against_label": value,
+            "verdict": verdict}

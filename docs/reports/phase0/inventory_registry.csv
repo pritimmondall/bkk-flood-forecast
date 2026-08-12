@@ -1,0 +1,13 @@
+sensor_type,coord_quality,stations
+flood,district_centroid,107
+flow,district_centroid,17
+flow,inferred_other,2
+flow,none,9
+flow,subdistrict_centroid,2
+rain,district_centroid,126
+rain,inferred_other,3
+rain,none,2
+water,district_centroid,58
+water,inferred_other,31
+water,none,156
+water,subdistrict_centroid,55

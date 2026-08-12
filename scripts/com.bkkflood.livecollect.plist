@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+  "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.bkkflood.livecollect</string>
+
+  <key>ProgramArguments</key>
+  <array>
+    <string>/bin/bash</string>
+    <string>-lc</string>
+    <string>$HOME/Projects/bkk-flood-forecast/scripts/run_live_collect.sh</string>
+  </array>
+
+  <!-- BKKFLOOD_REPO is set explicitly because launchd gives the job a working
+       directory nobody controls. Without it the collector could resolve a
+       different repo root and write its history somewhere you never look —
+       which is indistinguishable from working, until the day you go looking
+       for six months of data and it is not there. -->
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>BKKFLOOD_REPO</key>
+    <string>/Users/pritimmondal/Projects/bkk-flood-forecast</string>
+    <key>PATH</key>
+    <string>/usr/local/bin:/usr/bin:/bin:/opt/homebrew/bin</string>
+  </dict>
+
+  <key>WorkingDirectory</key>
+  <string>/Users/pritimmondal/Projects/bkk-flood-forecast</string>
+
+  <!-- Hourly. ThaiWater publishes hourly, so faster gains nothing and only
+       costs a government server bandwidth. -->
+  <key>StartInterval</key>
+  <integer>3600</integer>
+
+  <!-- Fires once immediately at load, so you find out straight away whether it
+       works instead of an hour later. -->
+  <key>RunAtLoad</key>
+  <true/>
+
+  <key>StandardOutPath</key>
+  <string>/Users/pritimmondal/Projects/bkk-flood-forecast/data/live/_logs/launchd.out.log</string>
+  <key>StandardErrorPath</key>
+  <string>/Users/pritimmondal/Projects/bkk-flood-forecast/data/live/_logs/launchd.err.log</string>
+</dict>
+</plist>

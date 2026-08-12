@@ -1,0 +1,450 @@
+# =============================================================================
+#  Bangkok Flood Forecast — the single source of truth
+# =============================================================================
+#  RULE: if a constant is used anywhere in this project, it lives HERE and
+#  nowhere else. If a number appears in two places, one of them is already
+#  wrong. Notebooks, the library, the backend and the alert generator all read
+#  this file. Nothing keeps a second copy.
+#
+#  Spec reference: BKK_Flood_Forecast_Master_Spec_v3.docx §E.3
+# =============================================================================
+
+version: "3.0.0"
+
+# -----------------------------------------------------------------------------
+# Where things live. All paths are relative to the repository root.
+# -----------------------------------------------------------------------------
+paths:
+  root: "."
+  raw:
+    rain:  "data/Rain_2019-2025"
+    water: "data/Water_2019-2025"
+    flow:  "data/Flow_2019-2025"
+    flood: "data/Flood_2019-2025"
+  interim:  "data/interim"      # one Parquet per dataset-year
+  features: "data/features"     # model-ready tables
+  external: "data/external"     # Open-Meteo, Traffy Fondue, ThaiWater
+  gis:      "data/gis"
+  models:   "models"
+  reports:  "docs/reports"
+  dtm_1m:   "data/DTM_1M/DTM_1M.tif"
+  dem_srtm: "data/output_SRTMGL1.tif"
+  districts:    "data/gis/bangkok_districts.geojson"
+  subdistricts: "data/gis/bangkok_subdistricts.geojson"
+  station_registry: "data/station_registry_full.csv"
+
+# -----------------------------------------------------------------------------
+# The raw data, and the quirks that must be handled on every read.
+# -----------------------------------------------------------------------------
+data:
+  years: [2019, 2020, 2021, 2022, 2023, 2024, 2025]
+  cadence_minutes: 5              # native sensor cadence
+  model_cadence_minutes: 15       # resample for modelling (see §E.4)
+  timezone: "Asia/Bangkok"
+
+  # Quirks. Each one is real and verified — see spec §B.2.
+  encoding: "utf-8-sig"           # every header line carries a UTF-8 BOM
+  null_token: "NULL"              # missing values are the literal text NULL
+  quoted: true                    # *_name columns are Thai text containing commas
+
+  # Rain filenames are inconsistent: 2019.csv, 2020.csv, then "Rain 2021.csv"...
+  filename_patterns:
+    rain:  ["{year}.csv", "Rain {year}.csv"]
+    water: ["{year}.csv"]
+    flow:  ["{year}.csv"]
+    flood: ["{year}.csv"]
+
+  # Column layout per dataset: code, name, then the value columns.
+  schema:
+    rain:
+      code: "rain_code"
+      name: "rain_name"
+      values: ["rf5min", "rf15min", "rf30min", "rf1hr", "rf3hr", "rf6hr", "rf12hr", "rf24hr"]
+      unit: "mm"
+    water:
+      code: "water_code"
+      name: "water_name"
+      values: ["wl_in", "wl_out01", "wl_out02"]
+      unit: "m"                   # datum UNKNOWN — see §B.6, use changes only
+    flow:
+      code: "flow_code"
+      name: "flow_name"
+      values: ["flow", "wl", "area", "mean_velocity"]
+      unit: "m3/s, m, m2, m/s"
+    flood:
+      code: "flood_code"
+      name: "flood_name"
+      values: ["flood"]
+      unit: "cm"                  # THE TARGET: water depth on the road surface
+  timestamp_column: "site_timestamp"
+
+# -----------------------------------------------------------------------------
+# Sensors and columns we deliberately drop, and why.
+# -----------------------------------------------------------------------------
+exclusions:
+  # River-scale discharge, not canal scale. Not faulty — the wrong magnitude to
+  # average with canals (max 3,802 and 2,917 m3/s vs a canal median under 100).
+  flow_stations_from_canal_aggregate: ["FW.PKG.01", "FW.LPW.01"]
+
+  # Flat 0.00 for every reading in all seven years.
+  dead_sensors: ["FW.SSM.01"]
+
+  # 99.6% null across the archive.
+  water_columns: ["wl_out02"]
+
+  # Physically implausible values are nulled and flagged, never silently kept.
+  # (762 mm/24h at RF.BKY.02 in 2023 is inconsistent with that station's own
+  #  hourly maximum of 73 mm, so it is a broken record rather than a storm.)
+  #
+  # A range check must sit well above anything real, or it stops being a data
+  # check and becomes a hidden edit. The rf5min ceiling was briefly set to
+  # 25 mm, which silently deleted the exact readings needed to investigate
+  # whether the gauges are capped at 30.0 mm — the check was destroying the
+  # evidence for its own question. 60 mm/5 min (720 mm/h) is beyond any
+  # observed rainfall on Earth at that duration, so it excludes only nonsense.
+  range_checks:
+    rain:
+      rf5min:  {min: 0.0, max: 60.0}
+      rf15min: {min: 0.0, max: 60.0}
+      rf30min: {min: 0.0, max: 100.0}
+      rf1hr:   {min: 0.0, max: 150.0}
+      rf3hr:   {min: 0.0, max: 250.0}
+      rf6hr:   {min: 0.0, max: 300.0}
+      rf12hr:  {min: 0.0, max: 350.0}
+      rf24hr:  {min: 0.0, max: 400.0}
+    flood:
+      flood:   {min: 0.0, max: 200.0}
+    water:
+      wl_in:   {min: -10.0, max: 10.0}
+      wl_out01: {min: -10.0, max: 10.0}
+    flow:
+      mean_velocity: {min: -10.0, max: 10.0}
+
+# -----------------------------------------------------------------------------
+# What counts as a flood. Evidence for every number is in spec §B.4.
+# -----------------------------------------------------------------------------
+flood_event:
+  tiers_cm:
+    nuisance: 5                   # water on the road
+    advisory: 15                  # traffic disrupted — headline metrics reported here
+    severe: 30                    # impassable
+  primary_tier_cm: 15
+  persistence_readings: 2         # >= 2 consecutive 5-min readings (>= 10 minutes)
+  merge_gap_minutes: 60           # excursions closer than this are one event
+  min_event_minutes: 10           # anything shorter is a spike, not a flood
+  onset_definition: "depth_now_below_tier"
+
+# -----------------------------------------------------------------------------
+# Forecasting
+# -----------------------------------------------------------------------------
+horizons_hours: [1, 3, 6]
+
+splits:
+  scheme: "rolling_origin"        # chronological, never shuffled
+  embargo_hours: 24               # at every year boundary
+  folds:
+    - {train: [2019, 2020],                   val: 2021, test: 2022}
+    - {train: [2019, 2020, 2021],             val: 2022, test: 2023}
+    - {train: [2019, 2020, 2021, 2022],       val: 2023, test: 2024}
+    - {train: [2019, 2020, 2021, 2022, 2023], val: 2024, test: 2025}
+  sealed_holdout: null            # set to 2026 when that data arrives
+
+objective:
+  primary_metric: "f2"            # recall weighted 2x: a miss costs more than a patrol
+  max_miss_rate: 0.50
+  quantile_coverage_target: 0.90
+  quantile_coverage_tolerance: [0.85, 0.93]
+  promotion_rule:
+    challenger_beats_lightgbm_by: 0.01   # absolute PR-AUC
+    at_horizons: [3, 6]
+    on_tier_cm: 15
+    ties_go_to: "lightgbm"
+
+# -----------------------------------------------------------------------------
+# Alerting. Read §E.10 and §E.11 before changing anything here.
+# -----------------------------------------------------------------------------
+alerting:
+  # NEVER set to "Actual" without written BMA authorisation and a named owner.
+  cap_status: "Test"
+  cap_scope: "Restricted"
+  cap_sender: "bkk-flood-forecast@example.org"
+  languages: ["th-TH", "en-US"]
+  warning_p95_depth_cm: {1: 30, 3: 26, 6: 24}
+  watch_never_escalates: true
+
+# -----------------------------------------------------------------------------
+# Phase 1 — terrain from the 1 m DTM
+# -----------------------------------------------------------------------------
+#  Bangkok has about four metres of relief across the entire city. Median ground
+#  level is roughly 1 m. In a place that flat, the useful terrain question is not
+#  "is this uphill or downhill" — it is "is this a dip, and how deep".
+#  `depression_depth_m` is therefore the headline feature, not slope.
+#
+#  TWO RESOLUTIONS, ON PURPOSE:
+#    local features  (elevation, slope, depression depth) are computed at the
+#                    full 1 m, because a road dip is a few metres across and
+#                    coarsening averages it away — which is exactly the mistake
+#                    the 31 m SRTM made in earlier versions of this project.
+#    routing features (flow accumulation, TWI) are non-local: they need whole
+#                    catchments, so they run over the entire city in one pass at
+#                    a coarser resolution that fits in memory.
+# -----------------------------------------------------------------------------
+terrain:
+  source: "dtm_1m"                 # key in paths:
+  working_crs: "EPSG:32647"        # the DTM's own CRS (UTM zone 47N)
+
+  local:
+    resolution_m: 1.0              # full resolution. Do not coarsen this.
+    # Districts are processed one at a time with an overlap so that a dip
+    # straddling a boundary is not cut in half. 500 m is generous for the
+    # shallow urban depressions we care about; genuinely large basins are
+    # underestimated, and the notebook says so rather than hiding it.
+    buffer_m: 500
+    # A district is read in tiles so peak memory stays bounded regardless of
+    # district size (Nong Chok is ~236 km2 = 236 million pixels at 1 m).
+    tile_px: 4096
+    tile_overlap_px: 256
+
+  routing:
+    # Whole-city pass. 10 m keeps ~16 million valid cells, which fits the 2 GB
+    # budget with room for the sparse flow matrix.
+    resolution_m: 10.0
+    # Flow accumulation is solved iteratively: acc = 1 + (donors @ acc).
+    # Because water only moves downhill the system is a DAG, so this converges
+    # exactly — after as many rounds as the longest flow path is long. The cap
+    # is a safety stop, and the notebook reports whether it converged.
+    max_iterations: 800
+    convergence_tol: 0.0
+
+  # ---------------------------------------------------------------------------
+  # Phase 1.5 — recovering the ground surface
+  # ---------------------------------------------------------------------------
+  #  DTM_1M is not bare earth in dense districts. Buildings were removed from a
+  #  surface model and the holes interpolated, so over a large footprint the fill
+  #  drifts up toward roof height. Measured effect: median "ground" in Pathum Wan
+  #  is 4.57 m and in Bang Rak 4.55 m, against 0.63 m in open Lat Krabang.
+  #  Bangkok's inner districts are not four metres higher than its outskirts.
+  #
+  #  The contamination is recoverable from the raster itself. Streets, canals and
+  #  open land form the LOW surface; interpolated buildings sit above it. Taking
+  #  a rolling minimum over a window wider than a city block, and keeping cells
+  #  close to it, selects the surface water actually runs on.
+  #
+  #  This is an ESTIMATE of the low surface, not a true bare-earth model. It is a
+  #  workaround for a raster that is not what its filename says. The real answers
+  #  are (1) ask BMA what DTM_1M is, and (2) mask to OSM road centrelines, which
+  #  is implemented alongside this and is the better method where roads exist.
+  ground_mask:
+    enabled: true
+    # Wider than a city block, or the window never escapes the building.
+    # 50 m fails outright (Bang Rak stays at 3.6-4.5 m). Past ~150 m the window
+    # starts selecting the single lowest point over a large area and biases
+    # DOWNWARD -- open Lat Krabang goes negative, which is canal bed, not ground.
+    window_m: 100
+    # How far above the local minimum still counts as ground. Tighter than ~0.5 m
+    # keeps too little to be a street network (under 3% of a dense district).
+    tolerance_m: 1.0
+    # Sanity floor: if a district keeps less than this share of its area, the
+    # mask has collapsed onto canal beds rather than found streets.
+    min_ground_share: 0.01
+
+  # Depressions shallower than this are noise, not dips in the road.
+  min_depression_depth_m: 0.05
+
+  # Percentile summaries kept per district. p10 answers "how low do the low
+  # parts of this district get", which is the question that matters.
+  percentiles: [1, 5, 10, 25, 50, 75, 90, 95, 99]
+
+  # The boundary file and the station registry romanise one district name
+  # differently. 49 of 50 match exactly; this is the one that does not, and a
+  # silent join failure here would drop a district from every terrain feature.
+  district_name_aliases:
+    Watthana: "Vadhana"
+
+  outputs:
+    district_stats: "data/features/terrain_district.parquet"
+    station_stats:  "data/features/terrain_station.parquet"
+    rasters_dir:    "data/features/terrain_rasters"
+    write_rasters: true            # per-district depression-depth GeoTIFF for the map
+
+  # For when real station coordinates arrive (BMA data request #2). A single
+  # 1 m pixel under a sensor is meaningless noise — and today it would be
+  # meaningless anyway, because every "coordinate" we hold is a district
+  # centroid. Sampling a neighbourhood is both more robust and more honest.
+  point_sampling:
+    radius_m: [25, 100, 250]
+    require_coord_quality: ["surveyed", "gps"]   # NOT district_centroid
+
+# -----------------------------------------------------------------------------
+# Phase 2 — external data
+# -----------------------------------------------------------------------------
+#  THE RULE THAT MATTERS MOST HERE:
+#  a "forecast" feature must contain only what was knowable BEFORE the thing it
+#  predicts. Open-Meteo publishes two archives that look interchangeable and are
+#  not:
+#
+#    historical-forecast-api  = what the weather model SAID at the time.
+#                               Safe as a forecast feature.
+#    archive-api (ERA5)       = what actually happened, reconstructed later.
+#                               Safe as a PAST-rain feature. Using it as a
+#                               forecast would hand the model tomorrow's answer
+#                               during training and then take it away in
+#                               production — the accuracy would look excellent
+#                               and collapse silently on the first live day.
+#
+#  They are therefore fetched by different functions, written to different
+#  files, and prefixed differently in the feature set: `fcst_*` vs `era5_*`.
+# -----------------------------------------------------------------------------
+external:
+  # Points to pull for. Bangkok's 50 district centroids: it matches the district
+  # join already used for BMA rain gauges, and keeps one clean key everywhere.
+  # NOTE ON RESOLUTION: IFS HRES is ~9 km and ERA5 ~25 km, while Bangkok is only
+  # about 40 km across. Neighbouring districts will often share a grid cell.
+  # That is a real limit, not a bug — it is exactly why TMD radar is priority 1
+  # on the data request. Do not present these as district-specific rainfall.
+  points_from: "districts"          # centroids of paths.districts
+  points_cache: "data/external/district_points.csv"
+
+  open_meteo:
+    timezone: "Asia/Bangkok"
+    hourly: ["precipitation", "rain"]
+    # --- archived FORECAST: what the model said at the time --------------
+    forecast:
+      url: "https://historical-forecast-api.open-meteo.com/v1/forecast"
+      # CORRECTED TWICE. Read both corrections before changing this.
+      #
+      # (1) `ecmwf_ifs_hres` was a guess and is not a valid slug. Every request
+      #     returned 400, so the whole forecast pull came back empty.
+      #
+      # (2) The fix was then WRONG. Setting this to null removed the parameter,
+      #     the pull returned a healthy-looking 3,068,400 rows across all seven
+      #     years -- and every single value was identical to the ERA5 reanalysis
+      #     file. Correlation 1.0000, in all seven years. Without an explicit
+      #     model, the historical-forecast endpoint serves archived ANALYSIS for
+      #     past dates, not what the model predicted at the time.
+      #
+      #     That is worse than the original failure. A 400 error is loud. A
+      #     forecast column silently containing the observation is the answer
+      #     sheet: it trains beautifully and collapses on the first live day,
+      #     with nothing in the logs. It is exactly what rule 7 exists to stop,
+      #     and the fcst_/era5_ prefix scheme did not catch it because prefixes
+      #     separate names and the problem was content.
+      #
+      # An explicit model is therefore REQUIRED. Measured 2026-08-08 by
+      # scripts/diagnose_openmeteo.py, which compares each candidate against the
+      # archive endpoint rather than just checking that bytes came back:
+      #
+      #   null / best_match   100% identical to ERA5 in every year. UNUSABLE.
+      #   ecmwf_ifs025        genuinely different, verified back to 2019.
+      #   ecmwf_ifs04         genuinely different, verified back to 2019.
+      #
+      # Both ECMWF slugs reach 2019, which is BETTER than Open-Meteo's own
+      # "Available Since" table claims (it lists 2024-02 for ifs025 and 2022-11
+      # for ifs04). The table is conservative; the archive is deeper. Measuring
+      # beat reading the docs, in both directions, on the same day.
+      #
+      # (3) And "verified back to 2019" was ALSO wrong. ifs025's archive starts
+      #     2024-02-03, exactly as the docs said. Earlier years returned NaN,
+      #     NaN is not equal to anything, so the identical-share test scored 0%
+      #     and read that as "genuinely different". Absence looked like
+      #     difference. The pulled file was 73% empty and still passed.
+      #
+      # MEASURED COVERAGE (scripts/diagnose_openmeteo.py, 2026-08-08):
+      #     null / best_match   reanalysis in every year        UNUSABLE
+      #     ecmwf_ifs04         genuine 2023, 2024; none 2025
+      #     ecmwf_ifs025        genuine 2024, 2025; none before
+      #
+      # The two ECMWF archives are COMPLEMENTARY, not competing: 0.4 degrees ran
+      # from about 2022-11 until 0.25 degrees replaced it in 2024-02. Listing
+      # both and splicing them covers roughly 2022-11 to 2025 -- about three of
+      # our seven years, against two for either alone.
+      #
+      # The splice changes grid from ~44 km to ~25 km part way through the
+      # series. That is a real compromise, and it is accepted because the change
+      # is KNOWN and DATED -- unlike best_match, which swaps models underneath
+      # you silently. Order matters: oldest archive first, because the later
+      # entry wins wherever both have data.
+      #
+      # GFS, suggested by the supervisor (2026-08-09) and MEASURED to be the
+      # best option on both axes. scripts/diagnose_openmeteo.py, 9 Aug 2026:
+      #
+      #   model            genuine forecast years       grid
+      #   gfs_seamless     2021 2022 2023 2024 2025      0.11 deg  (~13 km)
+      #   gfs_global       identical to gfs_seamless     0.11 deg
+      #   ecmwf_ifs025           2024 2025               0.25 deg  (~25 km)
+      #   ecmwf_ifs04       2023 2024                    0.4  deg  (~44 km)
+      #   null/best_match  none - reanalysis in every year
+      #
+      # GFS covers every year the ECMWF pair covers AND 2021-2022 as well, at a
+      # finer grid than either. So there is nothing left for ECMWF to contribute
+      # and no reason to splice: ONE model, one resolution, 2021-03 to 2025, with
+      # no regime change part way through the series. That is strictly better
+      # than the ifs04+ifs025 splice this replaces.
+      #
+      # gfs_seamless and gfs_global returned identical values for every probed
+      # year. "Seamless" blends GFS with HRRR, which is US-only, so outside North
+      # America it is just the global model. Either name works; seamless is kept
+      # because it degrades gracefully if Open-Meteo changes the blend.
+      #
+      # NOTE ON RESOLUTION, correcting an earlier claim in this file: GFS is NOT
+      # "another 25 km product". Open-Meteo serves GFS surface variables at
+      # 0.11 deg, roughly 13 km -- about twice as fine as ERA5 and ECMWF IFS
+      # 0.25. That is a real improvement. It is still 3-6x coarser than the
+      # 2-5 km convective cells that cause this flooding, so it does not replace
+      # the TMD radar request; whether it beats the BMA gauges is a question for
+      # notebook 05, not an assumption.
+      #
+      # 2019 and 2020 remain empty: the GFS archive begins 2021-03-23. That is
+      # 5 of 7 years instead of 3, so the fold problem shrinks but does not
+      # vanish -- fold 1 trains on years with no forecast rain at all.
+      models: ["gfs_seamless"]
+      out: "data/external/openmeteo_forecast_rain.parquet"
+      role: "forecast"              # may be used as rain_fcst_*
+    # --- ERA5 reanalysis: what actually fell -----------------------------
+    observed:
+      url: "https://archive-api.open-meteo.com/v1/archive"
+      out: "data/external/era5_past_rain.parquet"
+      role: "observed"              # NEVER usable as a forecast feature
+    # Be a polite client: one point at a time, pause between calls, back off on
+    # errors. Free tier, no key, ~10k calls/day — this uses about 100.
+    request:
+      # All 50 districts go in one request (Open-Meteo accepts comma-separated
+      # coordinates), chunked one year at a time. That is 7 calls per source
+      # instead of 350. Lower batch_size if the server ever refuses the size.
+      batch_size: 50
+      seconds_between_calls: 1.5
+      timeout_seconds: 180
+      max_retries: 4
+      backoff_seconds: 5
+      cache_dir: "data/external/_cache"
+
+  traffy_fondue:
+    # Verified live 2026-08-07. Citizen problem reports with coordinates.
+    # Used for EVALUATION first, not training: it is the only independent
+    # check on how much flooding the 107-sensor network never sees.
+    url: "https://publicapi.traffy.in.th/teamchadchart-stat-api/geojson/v1"
+    page_size: 1000
+    max_pages: 200                  # a stop, so a bad loop cannot hammer them
+    flood_keywords: ["น้ำท่วม", "ท่อระบายน้ำ", "flood"]
+    out: "data/external/traffy_reports.parquet"
+
+  # Deliberately NOT collected. See docs/reports/phase2/external_sources.md.
+  #   pumps.bangkok.go.th — live BMA drainage data, 148 stations, and exactly
+  #   what this project needs. It is a government system with no published API
+  #   and no stated reuse terms. Ask BMA first. An unauthorised scraper is a bad
+  #   opening move in a project whose entire purpose is a BMA partnership.
+  blocked_pending_permission:
+    - "https://pumps.bangkok.go.th"
+
+# -----------------------------------------------------------------------------
+# Runtime
+# -----------------------------------------------------------------------------
+compute:
+  memory_limit: "2GB"             # ingestion must never exceed this
+  threads: 4
+  parquet_compression: "zstd"
+  # Where DuckDB spills to disk when a query exceeds memory_limit.
+  # null = the operating system's temp directory. Never point this inside the
+  # repository: on some mounted filesystems a process cannot delete the files
+  # it created, and DuckDB dies mid-query trying to clean up.
+  temp_directory: null

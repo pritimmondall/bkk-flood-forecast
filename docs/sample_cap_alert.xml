@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<alert xmlns="urn:oasis:names:tc:emergency:cap:1.2">
+  <identifier>BKK-FF-202509271800-FL-BNA-03-737aa6</identifier>
+  <sender>bkk-flood-forecast-prototype</sender>
+  <sent>2025-09-27T18:00:00+07:00</sent>
+  <status>Test</status>
+  <msgType>Alert</msgType>
+  <scope>Public</scope>
+  <info>
+    <language>en-US</language>
+    <category>Met</category>
+    <event>Urban Flood Warning</event>
+    <urgency>Immediate</urgency>
+    <severity>Minor</severity>
+    <certainty>Likely</certainty>
+    <onset>2025-09-27T19:00:00+07:00</onset>
+    <expires>2025-09-27T22:00:00+07:00</expires>
+    <senderName>BKK Flood Forecast (prototype — ML engineer deliverable)</senderName>
+    <headline>Road flooding ≥5cm expected within 1h at station FL.BNA.03</headline>
+    <description>Issued 2025-09-27T18:00:00 for monitoring station FL.BNA.03 (district BNA). Forecast-based: calibrated probability of ≥5cm within 1h is 9.85%. P95 depth forecast: 4.2cm. Current depth 0.8cm. Model: LightGBM baseline, thresholds frozen on 2024 validation.</description>
+    <instruction>PROTOTYPE TEST MESSAGE — not an official warning. In a real deployment: avoid low-lying roads in the affected area; do not drive through standing water.</instruction>
+    <parameter><valueName>station_code</valueName><value>FL.BNA.03</value></parameter>
+    <parameter><valueName>tier_cm</valueName><value>5</value></parameter>
+    <parameter><valueName>horizon_h</valueName><value>1</value></parameter>
+    <parameter><valueName>risk_pct_calibrated</valueName><value>9.85</value></parameter>
+    <parameter><valueName>depth_p95_cm</valueName><value>4.2</value></parameter>
+    <area>
+      <areaDesc>Vicinity of flood monitoring station FL.BNA.03, district BNA, Bangkok</areaDesc>
+    </area>
+  </info>
+</alert>

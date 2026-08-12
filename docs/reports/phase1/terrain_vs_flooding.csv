@@ -1,0 +1,12 @@
+feature,meaning,n,pearson_r,pearson_p,spearman_r,spearman_p
+twi_mean,mean wetness index,33,-0.164,0.3619,-0.231,0.1963
+elev_m_p10,elevation of the low tenth,33,-0.163,0.3649,-0.215,0.2288
+slope_deg_p50,median slope,33,0.219,0.2202,0.213,0.2343
+depressed_area_share,share of area in a dip,33,-0.154,0.3919,-0.21,0.2414
+elev_m_p50,median ground elevation,33,-0.176,0.3273,-0.169,0.3466
+twi_p95,p95 wetness index,33,-0.073,0.6877,-0.16,0.3751
+depression_depth_m_p99,p99 depression depth,33,-0.007,0.9704,0.153,0.3945
+log_flow_acc_p95,p95 log flow accumulation,33,0.238,0.1825,0.118,0.5118
+depression_depth_m_p95,p95 depression depth,33,-0.035,0.8488,0.083,0.6479
+elev_range_m,relief within the district,33,-0.057,0.7517,0.068,0.7069
+depression_depth_m_mean,mean depression depth,33,-0.097,0.591,0.011,0.9533

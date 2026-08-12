@@ -1,47 +1,53 @@
-# Bangkok Flood Forecast — Python dependencies
+# Bangkok Flood Forecast — v3.0
 # Install:  pip install -r requirements.txt
-# Python 3.10 or newer.
+# Then set: export PYTHONPATH="$PWD/src"
 
-# ── core data ────────────────────────────────────────────────────────────────
-numpy>=1.24
+# --- Phase 0: data foundation -------------------------------------------
+duckdb>=1.0            # streams the 54.8 GB archive inside a 2 GB memory cap
 pandas>=2.0
-pyarrow>=14.0            # Parquet read/write
-PyYAML>=6.0              # reads config/config.yaml
+pyarrow>=15.0          # Parquet
+numpy>=1.26
+PyYAML>=6.0            # config/config.yaml
 
-# ── machine learning ─────────────────────────────────────────────────────────
-scikit-learn>=1.3        # metrics, isotonic calibration
-lightgbm>=4.0            # the main forecasting model
-torch>=2.0               # GRU / LSTM / BiLSTM sequence models
-joblib>=1.3
+# --- Notebooks -----------------------------------------------------------
+jupyterlab>=4.0
+nbformat>=5.9
+nbclient>=0.9
+ipykernel>=6.29
+matplotlib>=3.8
 
-# ── plotting (notebooks only) ────────────────────────────────────────────────
-matplotlib>=3.7
-seaborn>=0.12
-
-# ── GIS ──────────────────────────────────────────────────────────────────────
-geopandas>=0.14
+# --- Phase 1: terrain from the 1 m DTM -----------------------------------
+rasterio>=1.3          # windowed / decimated reads of the 13.9 GB raster
+geopandas>=1.0
 shapely>=2.0
-rasterio>=1.3            # reads the DEM / DTM GeoTIFFs
-pyproj>=3.5
+pyproj>=3.6
+scikit-image>=0.22     # morphological reconstruction = sink filling
+scipy>=1.11            # sparse flow accumulation, distance transforms
+# NOTE: richdem is deliberately NOT used. It is the usual choice for sink
+# filling, but it frequently fails to build from source, and everything we need
+# is a few lines on top of scikit-image and scipy. One less thing to break on
+# someone else's machine.
 
-# ── backend API ──────────────────────────────────────────────────────────────
+# --- Phase 2: external data ----------------------------------------------
+httpx>=0.27
+requests>=2.31
+
+# --- Phases 4-6: models ---------------------------------------------------
+scikit-learn>=1.4
+lightgbm>=4.3
+torch>=2.2             # GRU / TCN challenger only
+
+# --- Phases 7-9: serving --------------------------------------------------
 fastapi>=0.110
-uvicorn[standard]>=0.27
+uvicorn[standard]>=0.29
 pydantic>=2.6
-pydantic-settings>=2.2
-httpx>=0.27              # outbound calls to Open-Meteo / ThaiWater
-
-# ── database ─────────────────────────────────────────────────────────────────
 SQLAlchemy>=2.0
 psycopg[binary]>=3.1
-GeoAlchemy2>=0.14
 alembic>=1.13
 
-# ── notebooks ────────────────────────────────────────────────────────────────
-jupyter>=1.0
-nbformat>=5.9
-ipykernel>=6.29
-tabulate>=0.9           # pandas .to_markdown() in 00_data_inventory
+# --- Phase 10: CAP --------------------------------------------------------
+lxml>=5.1
+jsonschema>=4.21
 
-# ── testing ──────────────────────────────────────────────────────────────────
+# --- Dev ------------------------------------------------------------------
 pytest>=8.0

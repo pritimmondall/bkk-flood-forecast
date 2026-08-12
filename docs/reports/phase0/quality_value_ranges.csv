@@ -1,0 +1,17 @@
+dataset,column,min,max,null_pct
+flood,flood,0.0,148.8,4.98
+flow,flow,-3297.7,3801.81,7.96
+flow,wl,-3.42,4.45,7.99
+flow,area,0.0,3268.33,9.24
+flow,mean_velocity,-9.98,10.0,7.91
+rain,rf5min,0.0,30.0,1.64
+rain,rf15min,0.0,60.0,1.64
+rain,rf30min,0.0,93.0,1.64
+rain,rf1hr,0.0,124.0,1.64
+rain,rf3hr,0.0,193.0,1.64
+rain,rf6hr,0.0,295.0,1.64
+rain,rf12hr,0.0,343.0,1.64
+rain,rf24hr,0.0,393.5,1.64
+water,wl_in,-5.22,4.0,5.69
+water,wl_out01,-5.03,3.9,81.82
+water,wl_out02,-1.6,2.31,99.63
